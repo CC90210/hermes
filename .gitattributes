@@ -1,0 +1,35 @@
+# Ensure consistent line endings across platforms
+
+# Python source — always LF
+*.py        text eol=lf
+
+# Shell scripts — always LF
+*.sh        text eol=lf
+
+# Windows batch files — always CRLF
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# Markdown — auto (let git decide, respect .editorconfig on checkout)
+*.md        text
+
+# Config / data formats — LF
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.json      text eol=lf
+*.csv       text eol=lf
+*.txt       text eol=lf
+*.env       text eol=lf
+Makefile    text eol=lf
+
+# EDI / binary attachments — binary (no EOL conversion)
+*.edi       binary
+*.x12       binary
+
+# PDF / Excel — always binary
+*.pdf       binary
+*.xlsx      binary
+*.xls       binary

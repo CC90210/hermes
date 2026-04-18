@@ -1,0 +1,19 @@
+Field,Value
+PO Number,PO-2026-04567
+Date,2026-04-15
+Ship Date,2026-04-22
+Bill To Name,Walgreens #04231
+Bill To Address,"1234 Market Street, Chicago, IL 60601"
+Bill To Email,purchasing@walgreens.com
+Ship To Name,Walgreens DC #07
+Ship To Address,"5500 Industrial Blvd, Aurora, IL 60504"
+,,,,
+SKU,Description,QTY,Unit Price,Total
+LWG-1001,Premium Cotton T-Shirt - Black M,144,4.25,612.00
+LWG-1002,Premium Cotton T-Shirt - Black L,144,4.25,612.00
+LWG-2050,Athletic Sock 6-Pack White,72,8.50,612.00
+,,,,
+Subtotal,,,$1836.00,
+Tax,,,$0.00,
+Total,,,$1836.00,
+Notes,Please ship via standard freight. Confirm receipt by EOD 2026-04-16.,,,,
