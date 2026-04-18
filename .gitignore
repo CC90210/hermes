@@ -31,6 +31,8 @@ ENV/
 env/
 .env
 .env.*
+!.env.template
+!**/.env.client.template
 
 # Database files
 *.db
@@ -66,3 +68,8 @@ htmlcov/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Runtime state (per-deployment, never committed)
+memory/*
+!memory/.gitkeep
+!memory/README.md

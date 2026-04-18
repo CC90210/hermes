@@ -1,101 +1,91 @@
-# Hermes — Agent Instructions
+# Hermes — AI Coding Instructions
 
-> Any AI working in this repo reads this first.
+> You are working in the Hermes codebase.
+> Hermes is OASIS AI's wholesale commerce agent product.
 
-## Project Context
+## Purpose
 
-**Client:** Emmanuel Lowinger — wholesale distributor, clients include Walgreens and similar retailers.
-**System:** Hermes (Agent Operating System) — automates the full PO loop: Outlook inbox → A2000 order entry → invoice retrieval → invoice email.
-**Built by:** OASIS AI Solutions (Conaugh McKenna, conaugh@oasisai.work)
-**Status:** MVP in development. Target production: May 2026.
+Hermes automates the full purchase-order lifecycle for wholesale distributors:
+inbox monitoring → PO parsing → A2000 order entry → invoice retrieval → invoice delivery.
+Each client runs their own isolated deployment. No cloud AI. No shared data.
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Language | Python 3.12 |
-| LLM (local) | Ollama — local inference only, no cloud AI |
-| Database | SQLite + SQLCipher (encrypted at rest) |
+| LLM | Ollama only — local inference, never cloud |
+| Database | SQLite (`aiosqlite`) |
 | API layer | FastAPI |
-| Browser automation | Playwright (A2000 screen fallback) |
-| Email | Microsoft Graph API (Outlook 365) or IMAP |
-| Testing | pytest |
+| Email | IMAP + SMTP (or Microsoft Graph API) |
+| Browser automation | Playwright (A2000 fallback only) |
+| Testing | pytest, 36 tests |
 
-## Critical Constraint: Local-Only Processing
+## Architecture (one paragraph)
 
-**ALL data stays on the client's machine. This is non-negotiable.**
-- No calls to OpenAI, Anthropic, or any cloud AI API with client data
-- Ollama is the only LLM — runs locally on the client's hardware
-- SQLite database is encrypted and never transmitted
-- The only external calls are to the client's own Outlook account and A2000 instance
+`main.py` delegates to `cron/scheduler.py` for CLI parsing. The Orchestrator
+(`manager/orchestrator.py`) owns the pipeline and holds references to EmailAgent,
+POParser, POSAgent, and the active A2000 adapter. Agents are stateless — they read
+and write only through `storage/db.py`. The A2000 adapter is selected at runtime via
+`A2000_MODE` env var; all four adapters implement `A2000ClientBase`. See
+`brain/ARCHITECTURE.md` for the full diagram.
 
-If you are tempted to add a cloud AI call for any reason, stop and use Ollama instead.
+## Rules
 
-## Architecture
+1. **Read `brain/PRINCIPLES.md` before non-trivial changes.** The six principles
+   (local-first, idempotent, fail-stopped, audit everything, escalate don't guess,
+   stateless agents) govern every design decision.
 
-```
-main.py
-  └── manager/bot.py          — Orchestrates all agents, handles errors, escalates
-        ├── agents/email_agent.py      — Outlook inbox monitoring + classification
-        ├── agents/parser.py           — PO extraction from PDF/Excel/EDI/body
-        ├── agents/invoice_agent.py    — Invoice retrieval + outbound email
-        └── adapters/
-              ├── a2000_api.py         — REST API (Tier 1, preferred)
-              ├── a2000_edi.py         — EDI 850 (Tier 2)
-              └── a2000_playwright.py  — Screen automation (Tier 4, fallback)
-```
+2. **Never commit `.env`.** Credentials live only on the client's machine.
+   Add new env vars to `.env.template` and `clients/<name>/.env.client.template`.
 
-The Manager Bot is the only component that calls external agents. Agents are stateless — they read from and write to SQLite only. The Manager drives all sequencing.
+3. **Never break `A2000ClientBase`.** All four adapters must remain substitutable.
+   Do not add required arguments to abstract methods or change return types.
 
-## A2000 Integration Tiers
+4. **Tests must stay green.** Run: `.venv/Scripts/python.exe -m pytest tests/`
+   All 36 tests must pass before any commit.
 
-Work through these in order. Use the highest available tier.
+5. **Every agent action logs to audit_log.** Call `storage.db.log_audit()` with
+   agent_name, action, and a details dict. The audit log is append-only.
 
-1. **REST API** — If `A2000_API_URL` and `A2000_API_KEY` are set in `.env`, use `adapters/a2000_api.py`
-2. **EDI 850** — If EDI is configured on the A2000 instance, use `adapters/a2000_edi.py`
-3. **Direct DB** — Not implemented. Do not add without explicit instruction. High risk.
-4. **Playwright** — Fallback. Implemented in `adapters/a2000_playwright.py`. Use `--mock-a2000` in development.
+6. **No cloud AI calls.** All LLM inference goes to Ollama. If you are tempted to
+   call OpenAI or Anthropic with client data, stop and use Ollama instead.
 
-## Development Rules
-
-- **No hardcoded credentials.** Every secret lives in `.env`. Load with `python-dotenv`. Never log credentials.
-- **No `any` types in TypeScript** (not applicable here, but if TypeScript is ever added: enforce types strictly)
-- **Mock mode always available.** `main.py --mock-a2000` runs the full pipeline without a live A2000. Tests must pass in mock mode.
-- **Every agent action gets a log entry.** Format: `YYYY-MM-DD HH:MM:SS | {agent} | {action} | {result}`
-- **Escalate rather than guess.** If parser confidence is below threshold, flag for operator review. Do not enter partial or uncertain data into A2000.
-- **Idempotency.** If the same PO is received twice, detect the duplicate and skip. Never double-enter an order.
-
-## Entry Point
+## Entry Points
 
 ```bash
-python main.py            # Run the system
-python main.py --health   # Health check
-python main.py --mock-a2000  # Development mode (no live A2000 required)
+python main.py                    # Run forever (300s cycle interval)
+python main.py --once             # Single cycle then exit
+python main.py --health           # Print health JSON and exit
+python main.py --interval N       # Run forever with N-second interval
+python main.py --mock-a2000       # Force A2000_MODE=mock for this run
+
+demo/run_demo.py                  # Full pipeline demo with mock data
+demo/demo_with_ollama.py          # Demo with real local LLM
 ```
 
 ## Testing
 
 ```bash
-pytest tests/             # Full test suite
-pytest tests/test_parser.py  # Parser only (useful during Phase 1)
+.venv/Scripts/python.exe -m pytest tests/              # Full suite
+.venv/Scripts/python.exe -m pytest tests/test_parser.py  # Parser only
 ```
-
-All tests must pass before any commit. Do not skip or comment out failing tests — fix them.
 
 ## File Conventions
 
-- `agents/` — One file per agent. No agent imports from another agent. All shared state via `db/`.
-- `adapters/` — One file per A2000 integration tier. The Manager selects which adapter to use at runtime.
-- `db/` — Schema migrations in `db/migrations/`. Never alter tables directly — always add a migration.
-- `logs/` — Rotated daily. Never commit log files. Add `logs/` to `.gitignore`.
-- `tests/` — Mirror the source structure: `tests/agents/`, `tests/adapters/`, etc.
+- `agents/` — One class per agent. Agents do not import each other.
+- `adapters/` — One file per A2000 tier + `po_parser.py` (parser adapter).
+- `storage/` — Schema in `db.py`. Migrations in `db/migrations/`. Never alter tables directly.
+- `tests/` — Mirror source structure. Add fixtures to `tests/fixtures/`.
+- `brain/` — Identity, architecture, capabilities, agents, principles. Read before coding.
+- `skills/` — Domain-specific playbooks. Read the relevant SKILL.md before touching that domain.
+- `clients/` — Per-client config overlays. No real credentials ever.
+- `memory/` — Runtime state only. Gitignored except `.gitkeep` and `README.md`.
 
-## Secrets and `.env`
+## Cross-References
 
-`.env` is never committed. `.env.example` is committed with all keys and no values. If you add a new env variable:
-1. Add it to `.env.example` with a comment explaining what it is
-2. Add it to the credentials table in `README.md`
-3. Load it with `os.environ.get("KEY")` — never hardcode a fallback value for a secret
-
-## Obsidian Links
-- [[brain/APP_REGISTRY]] | [[memory/SESSION_LOG]]
+- Identity and purpose: @brain/HERMES.md
+- Technical architecture: @brain/ARCHITECTURE.md
+- Sub-agent registry: @brain/AGENTS.md
+- Capability registry: @brain/CAPABILITIES.md
+- Operating principles: @brain/PRINCIPLES.md

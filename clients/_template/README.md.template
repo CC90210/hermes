@@ -1,0 +1,53 @@
+---
+tags: [hermes, client]
+---
+
+# [CLIENT NAME] — Deployment Notes
+
+> Replace everything in [brackets] with real information.
+
+## Client Business
+
+[1-2 sentences describing what the client does and why they need Hermes.]
+
+**Industry:** [industry]
+**Order volume:** [TBD / estimate X POs per day]
+**Peak periods:** [seasonal spikes or consistent volume]
+
+## POS System
+
+**System:** [POS name and vendor]
+**Version:** [confirm during discovery]
+**Modules licensed:** [confirm EDI module, API access]
+**Access method:** [mock → edi → api ladder decision]
+
+## Email Stack
+
+**Provider:** [Microsoft 365 / Gmail / Exchange / other]
+**MFA status:** [enabled/disabled — affects app password requirement]
+**Inbox routing:** [single inbox / folder rules / multiple addresses]
+
+## Integration Mode Roadmap
+
+| Phase | Mode | Trigger |
+|-------|------|---------|
+| 1. Demo | `mock` | Default |
+| 2. Staging | `mock` on prod hardware | Real emails, mock POS |
+| 3. Live | `edi` or `api` | Confirmed POS integration |
+
+## Key Contacts
+
+| Person | Role | Contact |
+|--------|------|---------|
+| [Name] | Client operator | [email] |
+| [Name] | Introducer / partner | — |
+| Conaugh McKenna | OASIS AI | conaugh@oasisai.work |
+
+## Dates
+
+- **Discovery call:** TBD
+- **Demo date:** TBD
+- **Go-live target:** TBD
+
+## Obsidian Links
+- [[clients/README]] | [[brain/HERMES]]
