@@ -12,7 +12,7 @@ You have two ways to interact with Hermes:
 
 1. **Background Hermes** — runs automatically on a schedule. Processes POs, sends invoices, does the routine work. You don't talk to this one; he just works.
 
-2. **IDE Hermes** — the one you TALK to. Open Claude Code, and he's right there. You type or say things like "Hey Hermes, what came in overnight?" and he answers and acts.
+2. **IDE Hermes** — the one you message. Open Claude Code on your computer and **type** to him like you'd text a sharp new hire — "Hey Hermes, what came in overnight?" He reads it, answers, and acts. No microphone, no voice AI, no special hardware — just the keyboard you already have.
 
 Both are the same Hermes — same memory, same data. The difference is one runs on autopilot, the other runs when you ask.
 
