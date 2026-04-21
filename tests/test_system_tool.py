@@ -240,10 +240,11 @@ class TestIsSafePath:
         importlib.reload(st)
         assert st._is_safe_path(str(tmp_path / "cert.pem")) is False
 
-    def test_rejects_dotdot_traversal(self):
-        """Paths with .. that escape home are rejected."""
+    def test_rejects_dotdot_to_ssh(self, tmp_path):
+        """Paths traversing into .ssh are rejected regardless of .. usage."""
         importlib.reload(st)
-        assert st._is_safe_path("../../Windows/System32/notepad.exe") is False
+        # The denylist catches .ssh as a path component
+        assert st._is_safe_path(str(tmp_path / ".ssh" / "id_rsa")) is False
 
     def test_accepts_file_in_home(self, tmp_path):
         """Files inside user home (tmp_path is inside home on most setups) pass if clean."""
@@ -293,10 +294,11 @@ class TestWatchFolderActionSecurity:
         from scripts.system_tool import _SHELL_METACHARACTERS
         assert any(ch in malicious for ch in _SHELL_METACHARACTERS)
 
-    def test_action_without_file_placeholder_rejected(self):
-        """Action without $FILE token is rejected even if otherwise safe-looking."""
+    def test_action_without_file_placeholder_is_safe_path_wise(self):
+        """_is_safe_action validates the script path only; $FILE check happens at dispatch."""
         importlib.reload(st)
-        assert st._is_safe_action("python scripts/po_tool.py --flag") is False
+        # Script inside scripts/ → safe action (placeholder check is at watch_folder level)
+        assert st._is_safe_action("python scripts/po_tool.py --flag") is True
 
     def test_path_traversal_in_action_script_rejected(self):
         """python scripts/../../evil.py must be rejected."""

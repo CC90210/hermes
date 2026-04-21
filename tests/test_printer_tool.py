@@ -222,14 +222,17 @@ class TestIsSafePrintPath:
         """.exe files are not in the allowlist."""
         assert pt._is_safe_print_path(str(tmp_path / "notepad.exe")) is False
 
-    def test_accepts_pdf(self, tmp_path):
-        """A plain .pdf path passes the safety check."""
+    def test_accepts_pdf(self, tmp_path, monkeypatch):
+        """A plain .pdf path inside user home passes the safety check."""
+        # Override denylist to not match tmp_path (avoid AppData\Local\Temp collision)
+        monkeypatch.setattr(pt, "_DENIED_PRINT_PATH_COMPONENTS", ())
         pdf = tmp_path / "invoice.pdf"
         pdf.touch()
         assert pt._is_safe_print_path(str(pdf)) is True
 
-    def test_accepts_zpl(self, tmp_path):
+    def test_accepts_zpl(self, tmp_path, monkeypatch):
         """A .zpl path passes the safety check."""
+        monkeypatch.setattr(pt, "_DENIED_PRINT_PATH_COMPONENTS", ())
         zpl = tmp_path / "label.zpl"
         zpl.touch()
         assert pt._is_safe_print_path(str(zpl)) is True
