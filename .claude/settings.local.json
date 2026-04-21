@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c \"echo '$HERMES_TOOL_INPUT' | grep -qE '\\.env$|\\.env\\.' && echo 'BLOCKED: .env writes are forbidden. Credentials stay in .env only.' && exit 1 || exit 0\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c \"echo '$HERMES_TOOL_INPUT' | grep -qE 'cat .env|type .env|echo.*PASSWORD|echo.*SECRET' && echo 'BLOCKED: Never echo credentials to chat.' && exit 1 || exit 0\""
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/*)",
+      "Bash(python main.py*)",
+      "Bash(git *)",
+      "Bash(.venv/Scripts/python.exe *)"
+    ]
+  }
+}
