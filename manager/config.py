@@ -70,12 +70,34 @@ class Config:
 
 
 def _validate_config(cfg: "Config") -> None:
-    """Validate cross-field config constraints after construction."""
+    """Validate cross-field config constraints after construction.
+
+    This is a soft check at import time — issues a warning so tests and
+    dev shells can import the module without a full .env. Hard validation
+    of ESCALATION_EMAIL happens inside escalate() when it would actually
+    be used.
+    """
+    import logging
+    log = logging.getLogger(__name__)
     if not cfg.escalation_email:
+        log.warning(
+            "ESCALATION_EMAIL is not set — Hermes will not be able to send "
+            "alerts when orders fail. Set it in .env before deploying to production."
+        )
+
+
+def require_escalation_email() -> str:
+    """Return the configured escalation email or raise if missing.
+
+    Call this from code paths that actually need to send an escalation
+    (e.g. Orchestrator.escalate). Import-time code should not call this.
+    """
+    if not config.escalation_email:
         raise EnvironmentError(
-            "ESCALATION_EMAIL is required — set it in .env. "
+            "ESCALATION_EMAIL is required for this operation — set it in .env. "
             "Hermes sends alerts to this address when orders fail after retries."
         )
+    return config.escalation_email
 
 
 def _validated_a2000_mode(value: str) -> A2000Mode:

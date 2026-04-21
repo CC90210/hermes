@@ -145,8 +145,10 @@ def test_missing_escalation_email_raises(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("A2000_MODE", "mock")
     monkeypatch.delenv("ESCALATION_EMAIL", raising=False)
 
+    import manager.config
+    assert manager.config.config.escalation_email == ""
     with pytest.raises(EnvironmentError, match="ESCALATION_EMAIL"):
-        import manager.config  # noqa: F401
+        manager.config.require_escalation_email()
 
 
 def test_present_escalation_email_does_not_raise(monkeypatch: pytest.MonkeyPatch) -> None:
