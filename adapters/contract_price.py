@@ -22,10 +22,9 @@ Reference: docs/WHOLESALE_RESEARCH.md — Section 5 (Wholesale Pricing Complexit
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from adapters.po_parser import POData
 

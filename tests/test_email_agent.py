@@ -7,7 +7,6 @@ send_alert HTML escaping, is_connected NOOP check, mark_seen.
 
 from __future__ import annotations
 
-import asyncio
 import os
 
 # Satisfy config's module-level env check before any hermes import resolves
@@ -91,7 +90,7 @@ async def test_send_alert_escapes_html(mock_env: None) -> None:
     """escalate() wraps the message with html.escape before putting it in the body."""
     import html
     from manager.orchestrator import Orchestrator
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import patch
 
     email_stub = MagicMock()
     captured_body: list[str] = []

@@ -118,7 +118,7 @@ def main() -> None:
 
     ep = data["pipeline_endpoint"]
     if ep["status"] == "ok":
-        print(f"  Pipeline endpoint: OK")
+        print("  Pipeline endpoint: OK")
     else:
         print(f"  Pipeline endpoint: {ep['note']}")
 

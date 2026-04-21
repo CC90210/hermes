@@ -13,6 +13,7 @@ from storage.db import (
     get_order,
     get_order_lines,
     log_audit,
+    update_order_a2000_ref,
     update_order_status,
     OrderStatus,
 )
@@ -102,15 +103,18 @@ class POSAgent:
         )
         logger.info("Entering order_id=%s (po_number=%s) into A2000", order_id, po.po_number)
 
-        await a2000_client.create_order(po)
+        result = await a2000_client.create_order(po)
+
+        # Persist the A2000-assigned reference so retrieve_invoice can look it up.
+        await update_order_a2000_ref(db_path, order_id, result.order_id)
 
         await log_audit(
             db_path,
             agent_name="pos_agent",
             action="entered",
-            details={"order_id": order_id},
+            details={"order_id": order_id, "a2000_ref": result.order_id},
         )
-        logger.info("order_id=%s entered into A2000", order_id)
+        logger.info("order_id=%s entered into A2000 (a2000_ref=%s)", order_id, result.order_id)
 
     async def retrieve_invoice(self, order_id: int, a2000_client: Any) -> pathlib.Path:
         """Fetch invoice bytes from A2000 and write to disk.
@@ -121,7 +125,16 @@ class POSAgent:
         db_path = self._config.db_path
         logger.info("Retrieving invoice for order_id=%s", order_id)
 
-        pdf_bytes: bytes = await a2000_client.get_invoice(str(order_id))
+        row = await get_order(db_path, order_id)
+        if row is None:
+            raise ValueError(f"Order {order_id} not found in database")
+        a2000_ref: str | None = row.get("a2000_ref")
+        if not a2000_ref:
+            raise ValueError(
+                f"Order {order_id} has no a2000_ref — enter_order must be called first"
+            )
+
+        pdf_bytes: bytes = await a2000_client.get_invoice(a2000_ref)
 
         if not pdf_bytes:
             raise ValueError(f"A2000 returned empty invoice for order {order_id}")
@@ -168,6 +181,8 @@ class POSAgent:
         printer_name = os.environ.get("WAREHOUSE_PRINTER_NAME", "").strip()
 
         # Write PDF to a temp file then call printer_tool via subprocess
+        tmp_path: str | None = None
+        result_data: dict[str, Any] = {}
         try:
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp.write(pdf_bytes)
@@ -188,10 +203,11 @@ class POSAgent:
             success = False
             result_data = {"error": str(exc)}
         finally:
-            try:
-                pathlib.Path(tmp_path).unlink(missing_ok=True)
-            except Exception:  # noqa: BLE001
-                pass
+            if tmp_path:
+                try:
+                    pathlib.Path(tmp_path).unlink(missing_ok=True)
+                except Exception:  # noqa: BLE001
+                    pass
 
         await log_audit(
             self._config.db_path,

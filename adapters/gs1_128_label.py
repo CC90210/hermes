@@ -24,6 +24,27 @@ Walgreens label template: https://docs.orderful.com/changelog/walgreens-ucc-128-
 
 from __future__ import annotations
 
+import re
+
+
+# ---------------------------------------------------------------------------
+# ZPL text sanitisation
+# ---------------------------------------------------------------------------
+
+
+def _sanitize_zpl_text(s: str, max_len: int = 40) -> str:
+    """Strip ZPL control characters from a user-supplied string.
+
+    Removes: ^ ~ NUL–US (0x00–0x1F) DEL (0x7F)
+    Collapses whitespace runs to a single space.
+    Caps at max_len characters (most ZPL ^FD fields have a practical 40-char max).
+    """
+    # Remove ZPL command characters and ASCII control chars
+    cleaned = re.sub(r"[\^~\x00-\x1F\x7F]", "", s)
+    # Collapse multiple spaces
+    cleaned = re.sub(r" {2,}", " ", cleaned)
+    return cleaned.strip()[:max_len]
+
 
 # ---------------------------------------------------------------------------
 # SSCC-18 computation
@@ -216,11 +237,18 @@ def generate_label_zpl(
     barcode_data = f">800{sscc}"
     human_readable = f"(00) {sscc[:2]} {sscc[2:9]} {sscc[9:17]} {sscc[17]}"
 
-    street = ship_to_address.get("street", "")
-    city = ship_to_address.get("city", "")
-    state = ship_to_address.get("state", "")
-    zip_code = ship_to_address.get("zip", "")
-    city_line = f"{city}, {state} {zip_code}".strip(", ")
+    street = _sanitize_zpl_text(ship_to_address.get("street", ""))
+    city = _sanitize_zpl_text(ship_to_address.get("city", ""), max_len=30)
+    state = _sanitize_zpl_text(ship_to_address.get("state", ""), max_len=10)
+    zip_code = _sanitize_zpl_text(ship_to_address.get("zip", ""), max_len=10)
+    city_line = _sanitize_zpl_text(f"{city}, {state} {zip_code}".strip(", "))
+
+    safe_ship_from = _sanitize_zpl_text(ship_from_name)
+    safe_ship_to = _sanitize_zpl_text(ship_to_name)
+    safe_po_number = _sanitize_zpl_text(po_number)
+    safe_po_date = _sanitize_zpl_text(po_date) if po_date else ""
+    safe_gtin = _sanitize_zpl_text(gtin, max_len=14)
+    safe_store = _sanitize_zpl_text(ship_to_store, max_len=20)
 
     zpl_lines = [
         "^XA",
@@ -229,35 +257,35 @@ def generate_label_zpl(
         "^LL1218",             # label length: 1218 dots (6 inches @ 203 DPI)
         # --- Ship-From block ---
         "^FO30,20^A0N,22,22^FDFrom:^FS",
-        f"^FO30,45^A0N,28,28^FD{ship_from_name[:35]}^FS",
+        f"^FO30,45^A0N,28,28^FD{safe_ship_from}^FS",
         # --- Horizontal rule ---
         "^FO20,85^GB772,3,3^FS",
         # --- Ship-To block ---
         "^FO30,95^A0N,22,22^FDShip To:^FS",
-        f"^FO30,120^A0N,32,32^FD{ship_to_name[:35]}^FS",
-        f"^FO30,158^A0N,26,26^FD{street[:40]}^FS",
-        f"^FO30,188^A0N,26,26^FD{city_line[:40]}^FS",
-        f"^FO30,218^A0N,26,26^FDStore/DC: {ship_to_store}^FS",
+        f"^FO30,120^A0N,32,32^FD{safe_ship_to}^FS",
+        f"^FO30,158^A0N,26,26^FD{street}^FS",
+        f"^FO30,188^A0N,26,26^FD{city_line}^FS",
+        f"^FO30,218^A0N,26,26^FDStore/DC: {safe_store}^FS",
         # --- Horizontal rule ---
         "^FO20,255^GB772,3,3^FS",
         # --- PO / carton info block ---
-        f"^FO30,270^A0N,28,28^FDPO: {po_number}^FS",
+        f"^FO30,270^A0N,28,28^FDPO: {safe_po_number}^FS",
     ]
 
-    if po_date:
-        zpl_lines.append(f"^FO30,302^A0N,28,28^FDPO Date: {po_date}^FS")
+    if safe_po_date:
+        zpl_lines.append(f"^FO30,302^A0N,28,28^FDPO Date: {safe_po_date}^FS")
 
     zpl_lines += [
         f"^FO30,336^A0N,28,28^FDCarton: {carton_number} of {total_cartons}^FS",
         f"^FO30,368^A0N,28,28^FDQty: {carton_qty} EA^FS",
-        f"^FO30,400^A0N,24,24^FDGTIN: {gtin}^FS",
+        f"^FO30,400^A0N,24,24^FDGTIN: {safe_gtin}^FS",
         # --- Horizontal rule ---
         "^FO20,435^GB772,3,3^FS",
         # --- GS1-128 barcode ---
         # ^BY: barcode field defaults — module width 3, ratio 3.0, height 150
         "^FO60,455",
         "^BY3,3,150",
-        f"^BCN,150,N,N,N,A",   # Code 128, height 150, no check, no check print, no human, GS1 mode
+        "^BCN,150,N,N,N,A",   # Code 128, height 150, no check, no check print, no human, GS1 mode
         f"^FD{barcode_data}^FS",
         # --- Human-readable SSCC below barcode ---
         f"^FO60,615^A0N,24,24^FD{human_readable}^FS",
@@ -358,13 +386,9 @@ def generate_label_pdf(
     try:
         from io import BytesIO
 
-        from reportlab.lib import colors
         from reportlab.lib.pagesizes import inch
-        from reportlab.lib.units import mm
         from reportlab.pdfgen import canvas
         from reportlab.graphics.barcode import code128
-        from reportlab.graphics import renderPDF
-        from reportlab.graphics.shapes import Drawing
     except ImportError as exc:
         raise ImportError(
             "reportlab is required for PDF label generation. "

@@ -12,7 +12,6 @@ from typing import Any
 
 import imapclient
 
-from adapters.po_parser import parse_po
 from manager.config import config
 from storage.db import log_audit
 

@@ -15,15 +15,13 @@ orchestrator *logic*, not the email agent itself.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from adapters.a2000_client import MockA2000Client
-from storage.db import OrderStatus, init_db
+from storage.db import init_db
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +119,6 @@ async def test_orchestrator_health_check(mock_env: None, tmp_path: Path) -> None
 
         orch = Orchestrator()
         # Initialise the DB so health_check list queries work
-        from manager.config import config
         db_path = tmp_path / "health_test.db"
         await init_db(db_path)
 

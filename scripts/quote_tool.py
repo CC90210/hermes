@@ -91,7 +91,7 @@ def interactive_quote(customer_query: str) -> dict:
         if not sku:
             break
         qty_str = input(f"  Quantity for {sku}: ").strip()
-        price_str = input(f"  Unit price ($): ").strip()
+        price_str = input("  Unit price ($): ").strip()
         try:
             qty = float(qty_str)
             price = float(price_str)
@@ -164,7 +164,7 @@ def main() -> None:
             print(f"Date:     {quote['date']}")
             print(f"Terms:    {quote.get('payment_terms', 'Net-30')}")
             print(f"Status:   {quote.get('status', 'draft')}")
-            print(f"\nLine Items:")
+            print("\nLine Items:")
             for li in quote.get("line_items", []):
                 print(f"  {li['sku']} x{li['quantity']} @ ${li['unit_price']:.2f} = ${li['line_total']:.2f}")
             print(f"\nTotal: ${quote.get('total', 0):,.2f}")

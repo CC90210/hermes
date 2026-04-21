@@ -104,7 +104,7 @@ def main() -> None:
     _append_session_log(args.note)
     _ensure_active_tasks()
 
-    print(f"Memory synced. STATE.md updated. Session log appended.")
+    print("Memory synced. STATE.md updated. Session log appended.")
     print(f"Stats: {stats['total_orders']} total orders, {stats['failed_orders']} failed, {stats['pending_orders']} pending.")
 
 

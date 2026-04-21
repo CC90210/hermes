@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 
 from adapters.gs1_128_label import (
+    _sanitize_zpl_text,
     compute_sscc,
     generate_label_pdf,
     generate_label_zpl,
@@ -268,3 +269,52 @@ def test_generate_label_pdf_starts_with_pdf_magic_bytes() -> None:
         total_cartons=3,
     )
     assert pdf[:4] == b"%PDF"
+
+
+# ---------------------------------------------------------------------------
+# Security: ZPL injection sanitisation (FIX 3)
+# ---------------------------------------------------------------------------
+
+
+def test_sanitize_zpl_text_strips_caret() -> None:
+    """Caret (^) — ZPL command character — is removed."""
+    assert "^" not in _sanitize_zpl_text("ACM^FS^XZ^XA E Corp")
+
+
+def test_sanitize_zpl_text_strips_tilde() -> None:
+    """Tilde (~) — ZPL host command character — is removed."""
+    assert "~" not in _sanitize_zpl_text("ACME~HB")
+
+
+def test_sanitize_zpl_text_strips_control_chars() -> None:
+    """ASCII control characters (0x00–0x1F, 0x7F) are removed."""
+    result = _sanitize_zpl_text("ACME\x00\x1F\x7FStore")
+    assert "\x00" not in result
+    assert "\x1F" not in result
+    assert "\x7F" not in result
+    assert "ACME" in result
+
+
+def test_sanitize_zpl_text_caps_at_40_chars() -> None:
+    """Output is capped at the default 40-char max."""
+    result = _sanitize_zpl_text("A" * 100)
+    assert len(result) == 40
+
+
+def test_generate_label_zpl_injection_in_ship_to_name() -> None:
+    """Crafted ship_to_name containing ZPL commands does not appear raw in output."""
+    sscc = compute_sscc(0, "0614141", 1)
+    malicious_name = "ACME^FS^XZ^XA^JUS^FS^XA"
+    zpl = generate_label_zpl(
+        sscc=sscc,
+        gtin="00012345678905",
+        po_number="PO-001",
+        ship_to_name=malicious_name,
+        ship_to_address=_SHIP_TO,
+        ship_to_store="DC0001",
+        carton_qty=1,
+        carton_number=1,
+        total_cartons=1,
+    )
+    # The injected sequence must NOT appear verbatim in the output
+    assert "^FS^XZ^XA" not in zpl

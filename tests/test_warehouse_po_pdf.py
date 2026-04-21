@@ -104,3 +104,35 @@ class TestGenerateWarehousePo:
         )
         pdf = generate_warehouse_po(minimal_po, "0")
         assert len(pdf) > 0
+
+    def test_xml_injection_in_customer_name_does_not_crash(self):
+        """PDF generation succeeds and contains literal text, not interpreted tags."""
+        import io
+        import pdfplumber
+
+        injected_po = POData(
+            po_number="PO-INJECT-001",
+            customer_name='<script>alert(1)</script>',
+            customer_email="test@example.com",
+            customer_address="123 Main St",
+            ship_to_address="456 Warehouse Ave",
+            order_date="2026-04-18",
+            ship_date="2026-04-25",
+            notes=None,
+            line_items=[
+                LineItem(sku="SKU-X", description="Test Item", quantity=1, unit_price=9.99),
+            ],
+            raw_text="",
+            internal_order_id="99",
+        )
+        # Must not raise despite the injected tags
+        pdf = generate_warehouse_po(injected_po, "99")
+        assert isinstance(pdf, bytes)
+        assert len(pdf) > 0
+
+        # The PDF must contain the escaped literal text (not render it as HTML)
+        with pdfplumber.open(io.BytesIO(pdf)) as doc:
+            text = "\n".join(page.extract_text() or "" for page in doc.pages)
+        # Raw <script> tag should NOT appear — it will be escaped to &lt;script&gt;
+        # and pdfplumber will decode it back to the literal characters
+        assert "<script>" not in text or "alert(1)" not in text

@@ -12,12 +12,10 @@ from __future__ import annotations
 
 import json
 import sys
-import unittest
 from dataclasses import asdict
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 
 # Add project root to path so imports work from the tests/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -201,3 +199,80 @@ class TestPrintResultJson:
         assert json.dumps(d)  # must not raise
         assert d["success"] is True
         assert d["job_id"] == 7
+
+
+# ---------------------------------------------------------------------------
+# Security: _is_safe_print_path (FIX 2)
+# ---------------------------------------------------------------------------
+
+class TestIsSafePrintPath:
+    def test_rejects_dotdot_traversal(self):
+        """Paths with '..' are rejected."""
+        assert pt._is_safe_print_path("../../../Windows/System32/notepad.exe") is False
+
+    def test_rejects_dotenv(self, tmp_path):
+        """Paths to .env file are rejected (bad extension, not in allowlist)."""
+        assert pt._is_safe_print_path(str(tmp_path / ".env")) is False
+
+    def test_rejects_pem_extension(self, tmp_path):
+        """.pem files are rejected even if they pass other checks."""
+        assert pt._is_safe_print_path(str(tmp_path / "cert.pem")) is False
+
+    def test_rejects_exe_extension(self, tmp_path):
+        """.exe files are not in the allowlist."""
+        assert pt._is_safe_print_path(str(tmp_path / "notepad.exe")) is False
+
+    def test_accepts_pdf(self, tmp_path):
+        """A plain .pdf path passes the safety check."""
+        pdf = tmp_path / "invoice.pdf"
+        pdf.touch()
+        assert pt._is_safe_print_path(str(pdf)) is True
+
+    def test_accepts_zpl(self, tmp_path):
+        """A .zpl path passes the safety check."""
+        zpl = tmp_path / "label.zpl"
+        zpl.touch()
+        assert pt._is_safe_print_path(str(zpl)) is True
+
+
+class TestPrintPdfPathSecurity:
+    def test_print_pdf_rejects_unsafe_path(self):
+        """print_pdf returns failure for paths outside the allowlist."""
+        result = pt.print_pdf("../../../Windows/System32/notepad.exe")
+        assert result.success is False
+        assert "rejected" in (result.error or "").lower()
+
+    def test_print_pdf_rejects_dotenv(self, tmp_path):
+        """print_pdf refuses to print .env."""
+        result = pt.print_pdf(str(tmp_path / ".env"))
+        assert result.success is False
+
+
+class TestCLIPrintPathSecurity:
+    def test_cli_print_rejects_unsafe_path(self, capsys):
+        """--print with an unsafe path exits 1 with a clear error."""
+        with patch("sys.argv", ["printer_tool.py", "--print", "../../../Windows/System32/calc.exe"]):
+            exit_code = pt.main()
+        assert exit_code == 1
+        captured = capsys.readouterr()
+        assert "rejected" in captured.err.lower() or "error" in captured.err.lower()
+
+    def test_cli_print_rejects_dotenv(self, tmp_path, capsys):
+        """--print .env exits 1."""
+        env_file = tmp_path / ".env"
+        env_file.touch()
+        with patch("sys.argv", ["printer_tool.py", "--print", str(env_file)]):
+            exit_code = pt.main()
+        assert exit_code == 1
+
+
+class TestZplFileSizeCap:
+    def test_zpl_file_too_large_rejected(self, tmp_path, capsys):
+        """ZPL file > 1 MB is rejected with exit code 1."""
+        big_zpl = tmp_path / "huge.zpl"
+        big_zpl.write_bytes(b"^XA" + b"X" * (1024 * 1024 + 1))
+        with patch("sys.argv", ["printer_tool.py", "--print-zpl", str(big_zpl), "--printer", "TestPrinter"]):
+            exit_code = pt.main()
+        assert exit_code == 1
+        captured = capsys.readouterr()
+        assert "too large" in captured.err.lower() or "error" in captured.err.lower()

@@ -137,16 +137,19 @@ def test_expand_matrix_no_xref_sku_is_none() -> None:
         assert item.sku is None
 
 
-def test_expand_matrix_partial_xref_emits_warning() -> None:
-    """When xref is provided but missing a key, a UserWarning is emitted."""
+def test_expand_matrix_partial_xref_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """When xref is provided but missing a key, a logger.warning is emitted."""
+    import logging
+
     # Xref covers only Navy×S — every other combination will trigger the warning.
     partial_xref = ItemCrossReference(
         buyer_to_vendor={"BT-WARN-Navy-S": "V-BT-WARN-NAV-S"},
         vendor_to_buyer={"V-BT-WARN-NAV-S": "BT-WARN-Navy-S"},
         vendor_to_upc={"V-BT-WARN-NAV-S": "100000000001"},
     )
-    with pytest.warns(UserWarning, match="no xref entry"):
+    with caplog.at_level(logging.WARNING, logger="adapters.matrix_expander"):
         expand_matrix(_PIPE_MATRIX, "BT-WARN", xref=partial_xref)
+    assert any("no xref entry" in r.message for r in caplog.records)
 
 
 def test_expand_kv_format() -> None:

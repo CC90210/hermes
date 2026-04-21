@@ -46,7 +46,14 @@ CREATE TABLE IF NOT EXISTS orders (
     raw_email_id    TEXT,
     retry_count     INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT NOT NULL,
-    updated_at      TEXT NOT NULL
+    updated_at      TEXT NOT NULL,
+    customer_address TEXT,
+    ship_to_address  TEXT,
+    order_date       TEXT,
+    ship_date        TEXT,
+    notes            TEXT,
+    raw_text         TEXT,
+    a2000_ref        TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
@@ -110,18 +117,46 @@ async def create_order(
     customer_email: str,
     raw_email_id: str | None = None,
     status: OrderStatus = OrderStatus.RECEIVED,
+    customer_address: str | None = None,
+    ship_to_address: str | None = None,
+    order_date: str | None = None,
+    ship_date: str | None = None,
+    notes: str | None = None,
+    raw_text: str | None = None,
 ) -> int:
     now = _now()
     async with aiosqlite.connect(db_path) as db:
         cursor = await db.execute(
             """
-            INSERT INTO orders (po_number, customer_name, customer_email, status, raw_email_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO orders (
+                po_number, customer_name, customer_email, status, raw_email_id,
+                created_at, updated_at,
+                customer_address, ship_to_address, order_date, ship_date, notes, raw_text
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (po_number, customer_name, customer_email, status.value, raw_email_id, now, now),
+            (
+                po_number, customer_name, customer_email, status.value, raw_email_id,
+                now, now,
+                customer_address, ship_to_address, order_date, ship_date, notes, raw_text,
+            ),
         )
         await db.commit()
         return cursor.lastrowid  # type: ignore[return-value]
+
+
+async def update_order_a2000_ref(
+    db_path: Path | str,
+    order_id: int,
+    a2000_ref: str,
+) -> None:
+    """Persist the A2000-assigned order reference for later invoice retrieval."""
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute(
+            "UPDATE orders SET a2000_ref = ?, updated_at = ? WHERE id = ?",
+            (a2000_ref, _now(), order_id),
+        )
+        await db.commit()
 
 
 async def update_order_status(

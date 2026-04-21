@@ -18,8 +18,8 @@ ANSI X12 Version 5010, Transaction Set 856.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -249,19 +249,19 @@ class ASNBuilder:
         order_hl_id = hl_counter - len(order_segs) + 1  # id of the HL*O segment
 
         for pallet in shipment.pallets:
-            tare_segs, hl_counter = self._build_tare_hl(pallet, hl_counter, hl_counter - 1)
+            tare_segs, hl_counter = self._build_tare_hl(pallet, hl_counter, order_hl_id)
             hl_segments.extend(tare_segs)
             tare_hl_id = hl_counter - len(tare_segs) + 1
 
             for carton in pallet.cartons:
                 pack_segs, hl_counter = self._build_pack_hl(
-                    carton, hl_counter, hl_counter - 1
+                    carton, hl_counter, tare_hl_id
                 )
                 hl_segments.extend(pack_segs)
                 pack_hl_id = hl_counter - len(pack_segs) + 1
 
                 item_segs, hl_counter = self._build_item_hl(
-                    carton, hl_counter, hl_counter - 1
+                    carton, hl_counter, pack_hl_id
                 )
                 hl_segments.extend(item_segs)
 
@@ -279,7 +279,7 @@ class ASNBuilder:
         segments.append(_seg("GE", "1", str(control_number)))
         segments.append(_seg("IEA", "1", str(control_number).zfill(9)))
 
-        return "\n".join(segments).encode("utf-8")
+        return "\n".join(segments).encode("ascii", errors="replace")
 
     # ------------------------------------------------------------------
     # Private segment builders
@@ -469,7 +469,7 @@ def write_asn_to_file(edi_bytes: bytes, output_dir: Path, asn_number: str) -> Pa
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_asn = re.sub(r"[^A-Za-z0-9_-]", "-", asn_number)
-    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     filename = f"{safe_asn}_{timestamp}.edi"
     out_path = output_dir / filename
     out_path.write_bytes(edi_bytes)

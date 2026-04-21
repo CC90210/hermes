@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import html
 import logging
+import os
 import signal
 from datetime import datetime, timezone
 from pathlib import Path
@@ -200,14 +201,19 @@ class Orchestrator:
             return False
 
         # Step 3b — warehouse PO print (optional, non-blocking)
-        import os as _os
-        if _os.environ.get("HERMES_PRINT_WAREHOUSE_PO", "0") == "1":
+        if os.environ.get("HERMES_PRINT_WAREHOUSE_PO", "0") == "1":
             try:
                 # Reconstruct POData for the print helper
                 from adapters.po_parser import LineItem, POData
                 from storage.db import get_order as _get_order, get_order_lines as _get_lines
 
                 row = await _get_order(config.db_path, order_id)
+                if row is None:
+                    logger.error(
+                        "Cycle %d: order %d not found in DB for warehouse PO print — skipping",
+                        cycle_id, order_id,
+                    )
+                    row = {}
                 lines = await _get_lines(config.db_path, order_id)
                 po_for_print = POData(
                     po_number=row.get("po_number"),

@@ -66,6 +66,7 @@ class RemittanceAdvice:
 
     @property
     def total_deductions(self) -> Decimal:
+        """Sum of all deduction amounts across every invoice in this remittance."""
         return sum(
             (d.amount for inv in self.invoices_paid for d in inv.deductions),
             Decimal("0"),
@@ -110,11 +111,19 @@ _DISPUTABLE_TYPES: frozenset[DeductionType] = frozenset({
 # Public API
 # ---------------------------------------------------------------------------
 
+_MAX_820_BYTES = 50 * 1024 * 1024  # 50 MB — real 820s are typically < 500 KB
+
+
 def parse_820(edi_bytes: bytes) -> RemittanceAdvice:
     """Parse a complete X12 5010 820 document.
 
     Returns a RemittanceAdvice with all invoices and their deductions identified.
     """
+    if len(edi_bytes) > _MAX_820_BYTES:
+        raise ValueError(
+            f"EDI 820 exceeds size cap: {len(edi_bytes)} bytes (max {_MAX_820_BYTES})"
+        )
+
     raw = edi_bytes.decode("utf-8", errors="replace")
 
     if len(raw) < 106:
@@ -287,13 +296,20 @@ def extract_dispute_candidates(remit: RemittanceAdvice) -> list[Deduction]:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _safe_decimal(value: str) -> Decimal:
-    cleaned = re.sub(r"[^\d.\-]", "", value)
+def _safe_decimal(raw: str) -> Decimal:
+    cleaned = raw.strip()
+    if not cleaned:
+        if raw:  # non-empty input but all whitespace
+            _log.warning("_safe_decimal: whitespace-only value coerced to 0")
+        return Decimal("0")
+    cleaned = re.sub(r"[^\d.\-]", "", cleaned)
     if not cleaned or cleaned in (".", "-"):
+        _log.warning("_safe_decimal: failed to parse %r, returning 0", raw)
         return Decimal("0")
     try:
         return Decimal(cleaned)
-    except Exception:
+    except (Exception):  # noqa: BLE001
+        _log.warning("_safe_decimal: failed to parse %r, returning 0", raw)
         return Decimal("0")
 
 

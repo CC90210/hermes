@@ -26,14 +26,85 @@ Add --json to any command for machine-readable output.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import sys
 import time
-import asyncio
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+
+# ---------------------------------------------------------------------------
+# Print path safety
+# ---------------------------------------------------------------------------
+
+_ALLOWED_PRINT_EXTENSIONS: frozenset[str] = frozenset({
+    ".pdf", ".txt", ".docx", ".doc", ".rtf", ".zpl", ".xml", ".csv",
+})
+_DENIED_PRINT_PATH_COMPONENTS: tuple[str, ...] = (
+    ".env", ".ssh", "appdata\\roaming", "appdata\\local",
+    "program files", "windows",
+)
+_DENIED_PRINT_EXTENSIONS: frozenset[str] = frozenset({".key", ".pem", ".pfx"})
+
+_ZPL_FILE_MAX_BYTES = 1024 * 1024  # 1 MB — massive for real ZPL
+
+
+def _path_is_relative_to(child: Path, parent: Path) -> bool:
+    """Return True if child is inside parent (compatible with Python < 3.9)."""
+    try:
+        child.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def _is_safe_print_path(path: str) -> bool:
+    """Reject paths that could expose credentials or system files.
+
+    Rules:
+    - Must not contain '..'
+    - Must not have a denylist extension (.key, .pem, .pfx)
+    - Must end in an allowlisted extension
+    - Must not contain denylist path components (.env, .ssh, AppData, etc.)
+    - If HERMES_PRINT_ALLOWED_DIRS is set, must be within one of those dirs
+    """
+    if ".." in path:
+        return False
+
+    try:
+        p = Path(path).expanduser().resolve()
+    except Exception:  # noqa: BLE001
+        return False
+
+    # Deny sensitive extensions
+    if p.suffix.lower() in _DENIED_PRINT_EXTENSIONS:
+        return False
+
+    # Must be an allowlisted extension
+    if p.suffix.lower() not in _ALLOWED_PRINT_EXTENSIONS:
+        return False
+
+    # Deny denylist path components (case-insensitive)
+    path_lower = str(p).lower()
+    for component in _DENIED_PRINT_PATH_COMPONENTS:
+        if component in path_lower:
+            return False
+
+    # Optional allowlist directories
+    allowed_dirs_env = os.environ.get("HERMES_PRINT_ALLOWED_DIRS", "").strip()
+    if allowed_dirs_env:
+        allowed_dirs = [
+            Path(d.strip()).expanduser().resolve()
+            for d in allowed_dirs_env.split(",")
+            if d.strip()
+        ]
+        if not any(_path_is_relative_to(p, d) for d in allowed_dirs):
+            return False
+
+    return True
+
 
 # ---------------------------------------------------------------------------
 # Optional pywin32 import — graceful fallback on non-Windows
@@ -89,22 +160,18 @@ def _audit(action: str, details: dict[str, Any]) -> None:
         if not db_path.exists():
             return
 
-        import asyncio as _asyncio
-
         from storage.db import log_audit as _log_audit
 
         async def _write() -> None:
             await _log_audit(db_path, agent_name="printer", action=action, details=details)
 
         try:
-            loop = _asyncio.get_event_loop()
-            if loop.is_running():
-                # Schedule but don't wait — fire-and-forget
-                loop.create_task(_write())
-            else:
-                loop.run_until_complete(_write())
+            loop = asyncio.get_running_loop()
+            # Schedule but don't wait — fire-and-forget in async context
+            loop.create_task(_write())
         except RuntimeError:
-            _asyncio.run(_write())
+            # No running event loop — execute directly from sync context
+            asyncio.run(_write())
     except Exception:  # noqa: BLE001 — intentionally swallowed
         pass
 
@@ -166,6 +233,14 @@ def print_pdf(path: str, printer: str | None = None, copies: int = 1) -> PrintRe
     """
     if not _WIN32_AVAILABLE:
         return PrintResult(success=False, job_id=None, printer_name=printer or "", error=_WIN32_MSG)
+
+    if not _is_safe_print_path(path):
+        return PrintResult(
+            success=False,
+            job_id=None,
+            printer_name=printer or "",
+            error=f"Print rejected: path '{path}' is outside the allowed set or contains sensitive components",
+        )
 
     abs_path = str(Path(path).resolve())
     target_printer = printer or default_printer() or ""
@@ -301,6 +376,7 @@ def _emit(data: Any, as_json: bool) -> None:
 
 
 def main() -> int:
+    """CLI entry point — parse arguments and dispatch to printer operations."""
     parser = argparse.ArgumentParser(
         description="Hermes printer control — Windows thermal + document printing"
     )
@@ -325,6 +401,14 @@ def main() -> int:
             if args.as_json:
                 print(json.dumps({"warning": _WIN32_MSG, "printers": []}))
             return 0
+        if not printers and _WIN32_AVAILABLE:
+            # Windows is available but no printers are installed — warn and exit 1
+            msg = "No printers found. Install or connect a printer via Windows Settings."
+            if args.as_json:
+                print(json.dumps({"warning": msg, "printers": []}))
+            else:
+                print(f"WARNING: {msg}", file=sys.stderr)
+            return 1
         _emit(printers, args.as_json)
         return 0
 
@@ -337,6 +421,12 @@ def main() -> int:
         return 0
 
     if args.print_file:
+        if not _is_safe_print_path(args.print_file):
+            print(
+                f"ERROR: Print rejected: path '{args.print_file}' is outside the allowed set or contains sensitive components",
+                file=sys.stderr,
+            )
+            return 1
         result = print_pdf(args.print_file, printer=args.printer, copies=args.copies)
         _emit(result, args.as_json)
         return 0 if result.success else 1
@@ -345,6 +435,19 @@ def main() -> int:
         if not args.printer:
             print("--printer is required for ZPL printing", file=sys.stderr)
             return 2
+        if not _is_safe_print_path(args.print_zpl_file):
+            print(
+                f"ERROR: Print rejected: path '{args.print_zpl_file}' is outside the allowed set or contains sensitive components",
+                file=sys.stderr,
+            )
+            return 1
+        file_size = os.path.getsize(args.print_zpl_file)
+        if file_size > _ZPL_FILE_MAX_BYTES:
+            print(
+                f"ERROR: ZPL file too large: {file_size} bytes (max {_ZPL_FILE_MAX_BYTES})",
+                file=sys.stderr,
+            )
+            return 1
         zpl_bytes = Path(args.print_zpl_file).read_bytes()
         result = print_zpl_raw(zpl_bytes, args.printer)
         _emit(result, args.as_json)

@@ -126,7 +126,7 @@ def main() -> None:
             print(f"Failed:     {detail['failed_orders']}")
             print(f"Last order: {detail['last_order_at']}")
             if detail.get("recent_orders"):
-                print(f"\nRecent Orders:")
+                print("\nRecent Orders:")
                 for o in detail["recent_orders"][:5]:
                     val = o.get("order_value") or 0
                     print(f"  [{o['id']}] {o['po_number']} | {o['status']} | ${val:,.2f} | {o['created_at'][:10]}")

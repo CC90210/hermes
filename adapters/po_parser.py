@@ -115,8 +115,11 @@ class POData:
 def _extract_text_pdf(content: bytes) -> str:
     import pdfplumber  # lazy import — optional dep
 
-    with pdfplumber.open(io.BytesIO(content)) as pdf:
-        pages = [page.extract_text() or "" for page in pdf.pages]
+    try:
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            pages = [page.extract_text() or "" for page in pdf.pages]
+    except Exception as exc:
+        raise ValueError(f"PDF extraction failed: {exc}") from exc
     return "\n".join(pages)
 
 
@@ -235,13 +238,19 @@ async def _call_ollama(text: str) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=120.0) as client:
         resp = await client.post(f"{OLLAMA_HOST}/api/generate", json=payload)
         resp.raise_for_status()
-    raw = resp.json().get("response", "{}")
+    raw = resp.json().get("response") or "{}"
     try:
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
         raise RuntimeError(
             f"Ollama returned invalid JSON (first 200 chars): {raw[:200]}"
-        ) from e
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise RuntimeError(
+            f"Ollama returned non-dict JSON: type={type(parsed).__name__}, "
+            f"first 200 chars: {raw[:200]}"
+        )
+    return parsed
 
 
 def _build_po_data(extracted: dict[str, Any], raw_text: str) -> POData:
@@ -290,6 +299,8 @@ async def parse_po(content: bytes, filename: str, content_type: str) -> POData:
     plain text, then sends it to the local Ollama model for structured
     extraction.
     """
+    if not content:
+        raise ValueError("parse_po: empty content bytes — skipping parse")
     if len(content) > _MAX_ATTACHMENT_BYTES:
         raise ValueError(
             f"Attachment too large: {len(content)} bytes (limit {_MAX_ATTACHMENT_BYTES})"
@@ -366,11 +377,20 @@ class POParser:
 
         attachments: list[tuple[str, str, bytes]] = raw_email.get("attachments") or []
 
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+
         po: POData | None = None
         chosen = self._pick_attachment(attachments)
         if chosen is not None:
             filename, content_type, content = chosen
-            po = await parse_po(content, filename, content_type)
+            if not content:
+                _log.warning(
+                    "parse_and_persist: attachment %r is empty — skipping, falling back to body",
+                    filename,
+                )
+            else:
+                po = await parse_po(content, filename, content_type)
 
         if po is None:
             # Fall back to the email body
@@ -385,6 +405,12 @@ class POParser:
             customer_email=po.customer_email or raw_email.get("from", ""),
             raw_email_id=str(raw_email.get("uid", "")),
             status=OrderStatus.PARSED,
+            customer_address=po.customer_address,
+            ship_to_address=po.ship_to_address,
+            order_date=po.order_date,
+            ship_date=po.ship_date,
+            notes=po.notes,
+            raw_text=po.raw_text or None,
         )
 
         for item in po.line_items:

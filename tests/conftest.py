@@ -9,7 +9,6 @@ undone after each test — no global state leaks.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest

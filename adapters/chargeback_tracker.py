@@ -30,11 +30,11 @@ Dispute email:      SupplyChain.Compliance@Walgreens.com
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, Optional
 
-from adapters.edi_820_remit import Deduction, RemittanceAdvice
+from adapters.edi_820_remit import RemittanceAdvice
 
 
 @dataclass

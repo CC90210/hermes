@@ -6,8 +6,6 @@ Tests for manager/config.py mode-specific required variable validation.
 
 from __future__ import annotations
 
-import importlib
-import os
 import sys
 
 import pytest
@@ -18,6 +16,7 @@ def _reload_config_with_env(monkeypatch: pytest.MonkeyPatch, extra: dict[str, st
     base = {
         "EMAIL_USER": "test@example.com",
         "EMAIL_PASSWORD": "test-password",
+        "ESCALATION_EMAIL": "escalation@example.com",
     }
     base.update(extra)
     for key, value in base.items():
@@ -130,3 +129,28 @@ def test_mock_mode_requires_no_extra_vars(monkeypatch: pytest.MonkeyPatch) -> No
     _reload_config_with_env(monkeypatch, {"A2000_MODE": "mock"})
     import manager.config
     assert manager.config.config.a2000_mode == "mock"
+
+
+# ---------------------------------------------------------------------------
+# FIX 5 — ESCALATION_EMAIL is required
+# ---------------------------------------------------------------------------
+
+def test_missing_escalation_email_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Config raises EnvironmentError when ESCALATION_EMAIL is not set."""
+    for mod in list(sys.modules.keys()):
+        if "manager.config" in mod or mod == "manager.config":
+            del sys.modules[mod]
+    monkeypatch.setenv("EMAIL_USER", "test@example.com")
+    monkeypatch.setenv("EMAIL_PASSWORD", "test-password")
+    monkeypatch.setenv("A2000_MODE", "mock")
+    monkeypatch.delenv("ESCALATION_EMAIL", raising=False)
+
+    with pytest.raises(EnvironmentError, match="ESCALATION_EMAIL"):
+        import manager.config  # noqa: F401
+
+
+def test_present_escalation_email_does_not_raise(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Config loads without error when ESCALATION_EMAIL is set."""
+    _reload_config_with_env(monkeypatch, {"A2000_MODE": "mock", "ESCALATION_EMAIL": "alerts@example.com"})
+    import manager.config
+    assert manager.config.config.escalation_email == "alerts@example.com"

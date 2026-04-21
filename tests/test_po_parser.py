@@ -220,3 +220,68 @@ def test_build_po_data_handles_missing_fields() -> None:
     assert po.customer_email is None
     assert po.ship_date is None
     assert po.line_items == []
+
+
+# ---------------------------------------------------------------------------
+# FIX 4 — Ollama null / non-dict response raises RuntimeError
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_parse_po_ollama_returns_null_raises_runtime_error(sample_po_text: str) -> None:
+    """If Ollama returns literal 'null', parse_po raises RuntimeError with a descriptive message."""
+    respx.post("http://localhost:11434/api/generate").mock(
+        return_value=Response(200, json={"response": "null"})
+    )
+
+    with pytest.raises(RuntimeError, match="non-dict JSON"):
+        await parse_po(sample_po_text.encode(), "po.txt", "text/plain")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_parse_po_ollama_returns_array_raises_runtime_error(sample_po_text: str) -> None:
+    """If Ollama returns a JSON array instead of an object, parse_po raises RuntimeError."""
+    import json as _json
+    respx.post("http://localhost:11434/api/generate").mock(
+        return_value=Response(200, json={"response": _json.dumps([{"po_number": "X"}])})
+    )
+
+    with pytest.raises(RuntimeError, match="non-dict JSON"):
+        await parse_po(sample_po_text.encode(), "po.txt", "text/plain")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_parse_po_ollama_returns_invalid_json_raises_runtime_error(sample_po_text: str) -> None:
+    """If Ollama returns malformed JSON, parse_po raises RuntimeError."""
+    respx.post("http://localhost:11434/api/generate").mock(
+        return_value=Response(200, json={"response": "not json {"})
+    )
+
+    with pytest.raises(RuntimeError, match="invalid JSON"):
+        await parse_po(sample_po_text.encode(), "po.txt", "text/plain")
+
+
+# ---------------------------------------------------------------------------
+# FIX 6 — parse_po raises ValueError on empty content
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_parse_po_empty_content_raises() -> None:
+    """parse_po raises ValueError immediately on empty bytes without calling Ollama."""
+    with pytest.raises(ValueError, match="empty content bytes"):
+        await parse_po(b"", "po.txt", "text/plain")
+
+
+# ---------------------------------------------------------------------------
+# FIX 7 — corrupt PDF raises descriptive ValueError
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_parse_pdf_corrupt_raises_value_error() -> None:
+    """_extract_text_pdf wraps pdfplumber errors in a descriptive ValueError."""
+    from adapters.po_parser import _extract_text_pdf
+
+    with pytest.raises(ValueError, match="PDF extraction failed"):
+        _extract_text_pdf(b"not a real pdf")

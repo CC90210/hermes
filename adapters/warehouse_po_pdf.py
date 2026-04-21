@@ -22,6 +22,17 @@ if TYPE_CHECKING:
     from adapters.po_parser import POData
 
 
+def _escape_xml(s: str) -> str:
+    """Escape characters that have special meaning in ReportLab Paragraph XML markup."""
+    return (
+        s.replace("&", "&amp;")
+         .replace("<", "&lt;")
+         .replace(">", "&gt;")
+         .replace('"', "&quot;")
+         .replace("'", "&#39;")
+    )
+
+
 def generate_warehouse_po(po: "POData", order_id: str) -> bytes:
     """Render a single-page warehouse PO PDF and return the raw bytes.
 
@@ -79,12 +90,6 @@ def generate_warehouse_po(po: "POData", order_id: str) -> bytes:
     h1 = styles["Heading1"]
     h2 = styles["Heading2"]
 
-    bold_style = ParagraphStyle(
-        "Bold",
-        parent=normal,
-        fontName="Helvetica-Bold",
-        fontSize=10,
-    )
     label_style = ParagraphStyle(
         "Label",
         parent=normal,
@@ -103,10 +108,20 @@ def generate_warehouse_po(po: "POData", order_id: str) -> bytes:
     story.append(Paragraph("WAREHOUSE COPY — PURCHASE ORDER", h1))
     story.append(Spacer(1, 0.05 * inch))
 
+    safe_order_id = _escape_xml(str(order_id))
+    safe_po_number = _escape_xml(po.po_number or "N/A")
+    safe_customer_name = _escape_xml(po.customer_name or "—")
+    safe_customer_email = _escape_xml(po.customer_email or "—")
+    safe_customer_address = _escape_xml(po.customer_address or "—")
+    safe_ship_to_address = _escape_xml(po.ship_to_address or "—")
+    safe_order_date = _escape_xml(po.order_date or "—")
+    safe_ship_date = _escape_xml(po.ship_date or "—")
+    safe_notes = _escape_xml(po.notes or "")
+
     header_data = [
         [
-            Paragraph(f"<b>Internal Order ID:</b> {order_id}", normal),
-            Paragraph(f"<b>PO Number:</b> {po.po_number or 'N/A'}", normal),
+            Paragraph(f"<b>Internal Order ID:</b> {safe_order_id}", normal),
+            Paragraph(f"<b>PO Number:</b> {safe_po_number}", normal),
             Paragraph(f"<b>Printed:</b> {now_str}", normal),
         ]
     ]
@@ -129,21 +144,21 @@ def generate_warehouse_po(po: "POData", order_id: str) -> bytes:
     addr_data = [
         [
             Paragraph("<b>Customer:</b>", label_style),
-            Paragraph(po.customer_name or "—", normal),
+            Paragraph(safe_customer_name, normal),
             Paragraph("<b>Ship To:</b>", label_style),
-            Paragraph(po.ship_to_address or "—", normal),
+            Paragraph(safe_ship_to_address, normal),
         ],
         [
             Paragraph("<b>Email:</b>", label_style),
-            Paragraph(po.customer_email or "—", normal),
+            Paragraph(safe_customer_email, normal),
             Paragraph("<b>Order Date:</b>", label_style),
-            Paragraph(po.order_date or "—", normal),
+            Paragraph(safe_order_date, normal),
         ],
         [
             Paragraph("<b>Bill To:</b>", label_style),
-            Paragraph(po.customer_address or "—", normal),
+            Paragraph(safe_customer_address, normal),
             Paragraph("<b>Ship Date:</b>", label_style),
-            Paragraph(po.ship_date or "—", normal),
+            Paragraph(safe_ship_date, normal),
         ],
     ]
     addr_table = Table(
@@ -163,7 +178,7 @@ def generate_warehouse_po(po: "POData", order_id: str) -> bytes:
 
     if po.notes:
         story.append(Spacer(1, 0.05 * inch))
-        story.append(Paragraph(f"<b>Notes:</b> {po.notes}", normal))
+        story.append(Paragraph(f"<b>Notes:</b> {safe_notes}", normal))
 
     story.append(Spacer(1, 0.15 * inch))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
@@ -266,5 +281,8 @@ def generate_warehouse_po(po: "POData", order_id: str) -> bytes:
         )
     )
 
-    doc.build(story)
+    try:
+        doc.build(story)
+    except Exception as exc:
+        raise ValueError(f"PDF build failed — check for malformed field data: {exc}") from exc
     return buf.getvalue()

@@ -20,15 +20,24 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from adapters.po_parser import LineItem, POData
+from adapters.po_parser import POData
 
 _log = logging.getLogger(__name__)
+
+_MAX_NAME = 35  # practical EDI name field max
+
+
+def _sanitise(value: str, max_len: int) -> str:
+    """Strip EDI delimiter characters (* ~) and truncate to max_len."""
+    import re as _re
+    cleaned = _re.sub(r"[*~>]", "", value)
+    return cleaned[:max_len]
 
 
 class AckMode(str, Enum):
@@ -91,21 +100,21 @@ class Ack855Builder:
             segments.append(f"DTM*002*{ack.requested_ship_date.strftime('%Y%m%d')}")
 
         if ack.ship_to_name:
-            segments.append(f"N1*ST*{ack.ship_to_name}")
+            segments.append(f"N1*ST*{_sanitise(ack.ship_to_name, _MAX_NAME)}")
 
         if ack.bill_to_name:
-            segments.append(f"N1*BT*{ack.bill_to_name}")
+            segments.append(f"N1*BT*{_sanitise(ack.bill_to_name, _MAX_NAME)}")
 
         for line in ack.line_acks:
             segments.extend(self._build_line_ack(line))
 
         segments.append(f"CTT*{len(ack.line_acks)}")
 
-        # SE segment count includes ST and SE themselves
-        # Everything between ST and SE is counted
+        # SE count = number of segments from ST (inclusive) to SE (inclusive).
+        # At this point `segments` contains everything except SE itself; SE is added next.
         st_index = next(i for i, s in enumerate(segments) if s.startswith("ST*"))
-        # segments after ST (exclusive) up to but not including SE
-        body_count = len(segments) - st_index + 1  # +1 for SE itself
+        body_count = len(segments) - st_index + 1  # +1 for the SE we're about to add
+        assert body_count >= 2, "SE count must be at least 2 (ST + SE)"
         segments.append(f"SE*{body_count}*{control_number:04d}")
 
         segments.append(f"GE*1*{control_number}")
@@ -115,7 +124,7 @@ class Ack855Builder:
         return raw.encode("ascii")
 
     def _build_isa(self, control_number: int) -> str:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         date_str = now.strftime("%y%m%d")
         time_str = now.strftime("%H%M")
         ctrl = f"{control_number:09d}"
@@ -126,7 +135,7 @@ class Ack855Builder:
         )
 
     def _build_gs(self, control_number: int) -> str:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         date_str = now.strftime("%Y%m%d")
         time_str = now.strftime("%H%M")
         sender = self._sender.strip()
@@ -143,10 +152,6 @@ class Ack855Builder:
     def _build_line_ack(self, line: LineAck) -> list[str]:
         segs: list[str] = []
         qty = line.accepted_qty if line.accepted_qty is not None else line.original_qty
-        price_str = ""
-        if line.accepted_price is not None:
-            price_str = f"*PE*{line.accepted_price}"
-
         uom = "EA"
         ship_date_str = ""
         if line.ship_date:
@@ -239,7 +244,7 @@ def from_po_with_changes(
 def write_855_to_file(edi_bytes: bytes, output_dir: Path, po_number: str) -> Path:
     """Write 855 to disk: {po_number}_855_{timestamp}.edi"""
     output_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     safe_po = po_number.replace("/", "-").replace("\\", "-")
     path = output_dir / f"{safe_po}_855_{ts}.edi"
     path.write_bytes(edi_bytes)

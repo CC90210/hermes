@@ -24,7 +24,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pathlib
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -36,27 +38,61 @@ from typing import Any
 # Safety constants
 # ---------------------------------------------------------------------------
 
-# Action commands that run on folder-watch events must start with one of these
-# prefixes, OR the operator must set HERMES_UNSAFE_ACTIONS=1.
-_SAFE_ACTION_PREFIXES = ("python scripts/",)
+# Shell metacharacters that are dangerous even with shell=False in filenames
+_SHELL_METACHARACTERS = frozenset(";& |$`()<>!*\n\r")
+
+# Sensitive path components / extensions that should never be opened or acted on
+_DENIED_PATH_NAMES: frozenset[str] = frozenset({".env", ".gitconfig", ".ssh", ".aws"})
+_DENIED_EXTENSIONS: frozenset[str] = frozenset({".key", ".pem", ".pfx", ".pki"})
 
 
 def _is_safe_path(raw: str) -> bool:
-    """Reject paths that escape project/user directories via '..' traversal."""
+    """Reject paths that could expose sensitive files.
+
+    Checks:
+    - Sensitive file/directory names (.env, .ssh, etc.)
+    - Sensitive extensions (.key, .pem, etc.)
+    - Paths outside user home (with narrow exceptions for temp dirs)
+    """
     try:
-        resolved = Path(raw).resolve()
-        # Allow paths inside project root or user home
-        project_root = Path(__file__).resolve().parent.parent
-        user_home = Path.home()
-        return resolved.is_relative_to(project_root) or resolved.is_relative_to(user_home)
+        p = pathlib.Path(raw).expanduser().resolve()
+        # Deny by name (any component in the path)
+        if p.name in _DENIED_PATH_NAMES or any(part in _DENIED_PATH_NAMES for part in p.parts):
+            return False
+        # Deny by extension
+        if p.suffix.lower() in _DENIED_EXTENSIONS:
+            return False
+        # Deny paths outside user home (allow C:\temp and /tmp as safety valves)
+        try:
+            p.relative_to(pathlib.Path.home())
+            return True
+        except ValueError:
+            return tuple(p.parts[:2]) in (("C:\\", "temp"), ("/", "tmp"))
     except Exception:  # noqa: BLE001
         return False
 
 
-def _is_safe_action(cmd: str) -> bool:
+def _is_safe_action(action: str) -> bool:
+    """Return True if the action command is safe to run as a folder-watch callback.
+
+    Safe = the script argument resolves inside the project's scripts/ directory.
+    Falls back to HERMES_UNSAFE_ACTIONS=1 env override.
+    """
     if os.environ.get("HERMES_UNSAFE_ACTIONS", "0") == "1":
         return True
-    return any(cmd.startswith(p) for p in _SAFE_ACTION_PREFIXES)
+    try:
+        tokens = shlex.split(action)
+    except ValueError:
+        return False
+    if len(tokens) < 2 or tokens[0] != "python":
+        return False
+    script_path = pathlib.Path(tokens[1]).resolve()
+    scripts_dir = pathlib.Path("scripts").resolve()
+    try:
+        script_path.relative_to(scripts_dir)
+        return True
+    except ValueError:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -106,8 +142,8 @@ def send_notification(title: str, message: str, urgent: bool = False) -> dict[st
     Tries plyer first (cross-platform), then win10toast on Windows.
     Returns a result dict with success/error keys.
     """
-    title = _strip_crlf(title)
-    message = _strip_crlf(message)
+    title = _strip_crlf(title)[:64]   # plyer/win10toast hard limit
+    message = _strip_crlf(message)[:256]
 
     try:
         from plyer import notification  # type: ignore[import]
@@ -146,10 +182,10 @@ def send_notification(title: str, message: str, urgent: bool = False) -> dict[st
 def open_file(path: str) -> dict[str, Any]:
     """Open a file or URL with its default application.
 
-    Rejects paths with '..' that could escape safe directories.
+    Rejects paths that expose sensitive files or escape safe directories.
     """
-    if ".." in path and not _is_safe_path(path):
-        return {"success": False, "error": "Path rejected: unsafe traversal detected"}
+    if not _is_safe_path(path):
+        return {"success": False, "error": "Path rejected: unsafe or sensitive path detected"}
 
     try:
         if sys.platform == "win32":
@@ -192,8 +228,8 @@ def watch_folder(
         )
         return
 
-    if ".." in folder and not _is_safe_path(folder):
-        print(json.dumps({"error": "Folder path rejected: unsafe traversal detected"}), flush=True)
+    if not _is_safe_path(folder):
+        print(json.dumps({"error": "Folder path rejected: unsafe or sensitive path detected"}), flush=True)
         return
 
     if action and not _is_safe_action(action):
@@ -208,14 +244,39 @@ def watch_folder(
         )
         return
 
+    # Pre-parse action into argv once (FIX 1 — no shell=True, $FILE as argv token)
+    _action_argv: list[str] | None = None
+    if action:
+        try:
+            tokens = shlex.split(action)
+        except ValueError as exc:
+            print(json.dumps({"error": f"Cannot parse action command: {exc}"}), flush=True)
+            return
+        if "$FILE" not in tokens:
+            print(json.dumps({"error": "Action must contain $FILE placeholder token"}), flush=True)
+            return
+        _action_argv = tokens
+
     import fnmatch
 
     class _Handler(FileSystemEventHandler):
         def on_created(self, event: FileCreatedEvent) -> None:  # type: ignore[override]
+            """Handle a filesystem file-creation event from the watchdog observer."""
             if event.is_directory:
                 return
             file_path = str(event.src_path)
             if not fnmatch.fnmatch(Path(file_path).name, pattern):
+                return
+
+            # Belt-and-suspenders: reject filenames with shell metacharacters
+            if any(ch in file_path for ch in _SHELL_METACHARACTERS):
+                print(
+                    json.dumps({
+                        "warning": "Skipping file with shell metacharacters in path",
+                        "path": file_path,
+                    }),
+                    flush=True,
+                )
                 return
 
             payload = {
@@ -226,10 +287,10 @@ def watch_folder(
             print(json.dumps(payload), flush=True)
             _audit("folder_watch_event", payload)
 
-            if action:
-                cmd = action.replace("$FILE", file_path)
+            if _action_argv is not None:
+                argv = [file_path if t == "$FILE" else t for t in _action_argv]
                 try:
-                    subprocess.Popen(cmd, shell=True)  # noqa: S602 — guarded by whitelist
+                    subprocess.Popen(argv, shell=False)  # noqa: S603
                 except Exception as exc:  # noqa: BLE001
                     print(json.dumps({"error": f"Action failed: {exc}"}), flush=True)
 
@@ -306,8 +367,8 @@ def take_screenshot(output_path: str | None = None) -> dict[str, Any]:
         logs_dir.mkdir(parents=True, exist_ok=True)
         output_path = str(logs_dir / f"screenshot_{ts}.png")
 
-    if ".." in output_path and not _is_safe_path(output_path):
-        return {"success": False, "error": "Output path rejected: unsafe traversal detected"}
+    if not _is_safe_path(output_path):
+        return {"success": False, "error": "Output path rejected: unsafe or sensitive path detected"}
 
     try:
         img = ImageGrab.grab()
@@ -324,6 +385,7 @@ def take_screenshot(output_path: str | None = None) -> dict[str, Any]:
 
 
 def main() -> int:
+    """CLI entry point — parse arguments and dispatch to system operations."""
     parser = argparse.ArgumentParser(
         description="Hermes system operations — notifications, folder watch, open files"
     )

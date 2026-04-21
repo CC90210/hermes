@@ -27,6 +27,7 @@ from storage.db import (
     list_orders_by_status,
     log_audit,
     mark_email_sent,
+    update_order_a2000_ref,
     update_order_status,
 )
 
@@ -297,3 +298,85 @@ async def test_email_queue_multiple_pending(temp_db_path: Path) -> None:
 
     pending = await get_pending_emails(temp_db_path)
     assert len(pending) == 3
+
+
+# ---------------------------------------------------------------------------
+# FIX 1 — POData extended fields round-trip through DB
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_create_order_persists_podata_fields(temp_db_path: Path) -> None:
+    """All POData-sourced columns are written and read back correctly."""
+    await init_db(temp_db_path)
+
+    order_id = await create_order(
+        temp_db_path,
+        po_number="PO-ROUNDTRIP-001",
+        customer_name="Acme Retail",
+        customer_email="orders@acme.com",
+        customer_address="123 Main St, Chicago, IL 60601",
+        ship_to_address="456 Dock Rd, Aurora, IL 60504",
+        order_date="2026-04-15",
+        ship_date="2026-04-22",
+        notes="Ship via standard freight.",
+        raw_text="Raw PO text content here.",
+    )
+
+    row = await get_order(temp_db_path, order_id)
+    assert row is not None
+    assert row["customer_address"] == "123 Main St, Chicago, IL 60601"
+    assert row["ship_to_address"] == "456 Dock Rd, Aurora, IL 60504"
+    assert row["order_date"] == "2026-04-15"
+    assert row["ship_date"] == "2026-04-22"
+    assert row["notes"] == "Ship via standard freight."
+    assert row["raw_text"] == "Raw PO text content here."
+    assert row["a2000_ref"] is None  # not set yet
+
+
+@pytest.mark.asyncio
+async def test_create_order_podata_fields_default_null(temp_db_path: Path) -> None:
+    """POData extended columns default to NULL when not supplied."""
+    await init_db(temp_db_path)
+
+    order_id = await create_order(
+        temp_db_path,
+        po_number="PO-MINIMAL",
+        customer_name="Minimal Co",
+        customer_email="min@example.com",
+    )
+
+    row = await get_order(temp_db_path, order_id)
+    assert row is not None
+    assert row["customer_address"] is None
+    assert row["ship_to_address"] is None
+    assert row["order_date"] is None
+    assert row["ship_date"] is None
+    assert row["notes"] is None
+    assert row["raw_text"] is None
+
+
+# ---------------------------------------------------------------------------
+# FIX 2 — a2000_ref column persisted via update_order_a2000_ref
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_update_order_a2000_ref(temp_db_path: Path) -> None:
+    """update_order_a2000_ref persists the A2000 reference and is readable back."""
+    await init_db(temp_db_path)
+
+    order_id = await create_order(
+        temp_db_path,
+        po_number="PO-A2000-REF",
+        customer_name="Test Customer",
+        customer_email="test@example.com",
+    )
+
+    row = await get_order(temp_db_path, order_id)
+    assert row is not None
+    assert row["a2000_ref"] is None
+
+    await update_order_a2000_ref(temp_db_path, order_id, "MOCK-069E55CA")
+
+    row = await get_order(temp_db_path, order_id)
+    assert row is not None
+    assert row["a2000_ref"] == "MOCK-069E55CA"

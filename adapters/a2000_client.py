@@ -90,7 +90,7 @@ class MockA2000Client(A2000ClientBase):
         return OrderResult(
             order_id=order_id,
             success=True,
-            message=f"Mock order created successfully.",
+            message="Mock order created successfully.",
             invoice_number=invoice_number,
         )
 
@@ -130,9 +130,13 @@ class APIA2000Client(A2000ClientBase):
     NotImplementedError until the vendor provides API credentials and docs.
     """
 
-    def __init__(self) -> None:
-        self._api_url: str = os.environ["A2000_API_URL"]
-        self._api_key: str = os.environ["A2000_API_KEY"]
+    def __init__(self, api_url: str | None = None, api_key: str | None = None) -> None:
+        self._api_url: str = api_url or os.environ.get("A2000_API_URL", "")
+        self._api_key: str = api_key or os.environ.get("A2000_API_KEY", "")
+        if not self._api_url or not self._api_key:
+            raise EnvironmentError(
+                "APIA2000Client requires A2000_API_URL and A2000_API_KEY"
+            )
         self._http = httpx.AsyncClient(
             base_url=self._api_url,
             headers={"Authorization": f"Bearer {self._api_key}", "Accept": "application/json"},

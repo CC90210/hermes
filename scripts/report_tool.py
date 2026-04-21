@@ -175,7 +175,7 @@ def _print_daily_brief(data: dict, as_json: bool) -> None:
     print(f"2. Failures: {len(data['failures'])}")
     for f in data["failures"]:
         print(f"   [{f['id']}] {f['po_number']} — retried {f['retry_count']}x")
-    print(f"3. Top customers (overnight):")
+    print("3. Top customers (overnight):")
     for c in data["top_customers"]:
         print(f"   {c['customer_name']}: {c['orders']} orders — ${c.get('total') or 0:,.2f}")
 

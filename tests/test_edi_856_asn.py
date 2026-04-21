@@ -210,10 +210,10 @@ def test_se_segment_count_matches_actual() -> None:
     """SE01 must equal the number of segments from ST through SE inclusive."""
     edi = build_asn(_make_shipment(), "MYSENDER", "WALGREENS")
     text = edi.decode("utf-8")
-    lines = [l.rstrip("~") for l in text.splitlines() if l.strip()]
+    lines = [ln.rstrip("~") for ln in text.splitlines() if ln.strip()]
 
-    st_idx = next(i for i, l in enumerate(lines) if l.startswith("ST*"))
-    se_idx = next(i for i, l in enumerate(lines) if l.startswith("SE*"))
+    st_idx = next(i for i, ln in enumerate(lines) if ln.startswith("ST*"))
+    se_idx = next(i for i, ln in enumerate(lines) if ln.startswith("SE*"))
 
     expected_count = se_idx - st_idx + 1  # inclusive of both ST and SE
     se_elements = lines[se_idx].split("*")

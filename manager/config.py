@@ -69,6 +69,15 @@ class Config:
     )
 
 
+def _validate_config(cfg: "Config") -> None:
+    """Validate cross-field config constraints after construction."""
+    if not cfg.escalation_email:
+        raise EnvironmentError(
+            "ESCALATION_EMAIL is required — set it in .env. "
+            "Hermes sends alerts to this address when orders fail after retries."
+        )
+
+
 def _validated_a2000_mode(value: str) -> A2000Mode:
     allowed: tuple[A2000Mode, ...] = ("mock", "api", "edi", "playwright")
     if value not in allowed:
@@ -93,3 +102,4 @@ def _validated_a2000_mode(value: str) -> A2000Mode:
 
 # Module-level singleton — import this everywhere rather than constructing repeatedly.
 config = Config()
+_validate_config(config)

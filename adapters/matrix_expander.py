@@ -15,7 +15,6 @@ from __future__ import annotations
 import csv
 import logging
 import re
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -76,9 +75,11 @@ class ItemCrossReference:
         )
 
     def resolve_sku(self, buyer_code: str) -> Optional[str]:
+        """Return the vendor SKU for a buyer's item code, or None if not mapped."""
         return self.buyer_to_vendor.get(buyer_code)
 
     def upc_for(self, vendor_sku: str) -> Optional[str]:
+        """Return the UPC for a vendor SKU, or None if not in the cross-reference."""
         return self.vendor_to_upc.get(vendor_sku)
 
 
@@ -286,10 +287,9 @@ def _make_item(
         if vendor_sku is None:
             # xref was supplied but has no entry for this composite key — likely a
             # missing cross-reference row; warn so the operator can fix the table.
-            warnings.warn(
-                f"matrix_expander: no xref entry for composite key {composite!r}; sku will be None",
-                UserWarning,
-                stacklevel=2,
+            _log.warning(
+                "matrix_expander: no xref entry for composite key %r; sku will be None",
+                composite,
             )
         else:
             upc = xref.upc_for(vendor_sku)

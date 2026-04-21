@@ -102,8 +102,6 @@ async def run_demo_with_ollama() -> None:
 
     ollama_host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
     ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:32b")
-    company_name = os.environ.get("COMPANY_NAME", "Lowinger Distribution")
-
     _banner(ollama_model, ollama_host)
     print()
 
