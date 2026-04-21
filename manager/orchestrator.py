@@ -141,17 +141,28 @@ class Orchestrator:
         # Step 2 — parse each email into a structured PO and persist
         for raw_email in new_emails:
             order_id: int | None = None
+            uid = raw_email.get("uid")
             try:
                 order_id = await self._po_parser.parse_and_persist(raw_email)
                 logger.info("Cycle %d: parsed email → order_id=%d", cycle_id, order_id)
             except Exception:
                 logger.exception(
-                    "Cycle %d: PO parsing failed for email uid=%s",
-                    cycle_id,
-                    raw_email.get("uid"),
+                    "Cycle %d: PO parsing failed for email uid=%s", cycle_id, uid,
                 )
                 failed += 1
                 continue
+
+            # Mark IMAP message as SEEN so the next poll doesn't re-process it.
+            # Only after successful persistence — if mark_seen fails, duplicate
+            # processing is preferable to silently losing the order.
+            if uid is not None:
+                try:
+                    await self._email_agent.mark_seen(uid)
+                except Exception:
+                    logger.warning(
+                        "Cycle %d: mark_seen failed for uid=%s (order %d will be "
+                        "idempotent on duplicate fetch)", cycle_id, uid, order_id,
+                    )
 
             # Steps 3-5 — enter → retrieve invoice → email invoice
             success = await self._process_order(cycle_id, order_id)
