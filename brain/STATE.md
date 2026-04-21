@@ -1,4 +1,5 @@
 ---
+mutability: EPHEMERAL
 tags: [hermes, brain, state, ephemeral]
 ---
 

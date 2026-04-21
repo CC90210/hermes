@@ -1,3 +1,8 @@
+---
+mutability: IMMUTABLE
+tags: [hermes, brain, identity]
+---
+
 # HERMES — The Commerce Agent
 
 > Greek god of commerce, messengers, merchants, and travelers. The patron of trade.

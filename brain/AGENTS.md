@@ -1,5 +1,6 @@
 ---
-tags: [hermes, brain]
+mutability: SEMI-MUTABLE
+tags: [hermes, brain, agents]
 ---
 
 # AGENTS — Sub-Agent Registry

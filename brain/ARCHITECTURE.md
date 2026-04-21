@@ -1,5 +1,6 @@
 ---
-tags: [hermes, brain]
+mutability: SEMI-MUTABLE
+tags: [hermes, brain, architecture]
 ---
 
 # ARCHITECTURE — Hermes Technical System

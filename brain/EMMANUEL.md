@@ -1,4 +1,5 @@
 ---
+mutability: GOVERNED
 tags: [hermes, brain, client-profile]
 ---
 

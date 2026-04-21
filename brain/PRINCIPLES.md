@@ -1,5 +1,6 @@
 ---
-tags: [hermes, brain]
+mutability: SEMI-MUTABLE
+tags: [hermes, brain, principles]
 ---
 
 # PRINCIPLES — Hermes Operating Principles

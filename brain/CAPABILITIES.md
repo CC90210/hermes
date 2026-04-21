@@ -1,5 +1,6 @@
 ---
-tags: [hermes, brain]
+mutability: GOVERNED
+tags: [hermes, brain, capabilities]
 ---
 
 # CAPABILITIES — What Hermes Can Do
