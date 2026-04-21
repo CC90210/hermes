@@ -91,5 +91,34 @@ tags: [hermes, brain]
 - **Dashboard UI** — No web interface; status exposed only via `--health` flag
 - **Multi-client routing** — One process per client; no shared orchestrator
 
+---
+
+## Phase 2b+ — In Design (Compliance Stack)
+
+Scaffolded in this pass. No implementation yet — all methods raise NotImplementedError.
+See `docs/BUILD_PLAN.md` for phase definitions and timelines.
+
+| Capability | Module | Phase Tag | Status |
+|-----------|--------|-----------|--------|
+| EDI 855 PO Acknowledgment (accept / change / reject) | `adapters/edi_855_ack.py` | Phase 3b | Skeleton |
+| EDI 856 Advance Ship Notice generator | `adapters/edi_856_asn.py` | Phase 2b | Skeleton |
+| ASNBuilder hierarchical HL-loop structure | `adapters/edi_856_asn.py` | Phase 2b | Skeleton |
+| CartonContent dataclass (SSCC, GTIN, qty) | `adapters/edi_856_asn.py` | Phase 2b | Skeleton |
+| EDI 820 Remittance Advice parser | `adapters/edi_820_remit.py` | Phase 6b | Skeleton |
+| RemittanceAdvice + Deduction dataclasses | `adapters/edi_820_remit.py` | Phase 6b | Skeleton |
+| GS1-128 carton label — ZPL output (Zebra) | `adapters/gs1_128_label.py` | Phase 2b | Skeleton |
+| GS1-128 carton label — PDF fallback | `adapters/gs1_128_label.py` | Phase 2b | Skeleton |
+| SSCC-18 compute with Modulo-10 check digit | `adapters/gs1_128_label.py` | Phase 2b | Skeleton |
+| Apparel size-color matrix detection | `adapters/matrix_expander.py` | Phase 5b | Skeleton |
+| Matrix → flat line-item expansion | `adapters/matrix_expander.py` | Phase 5b | Skeleton |
+| Buyer item code ↔ vendor SKU cross-reference | `adapters/matrix_expander.py` | Phase 5b | Skeleton |
+| Contract price lookup (volume tiers, promo windows) | `adapters/contract_price.py` | Phase 4b | Skeleton |
+| PO pricing validation against A2000 table | `adapters/contract_price.py` | Phase 4b | Skeleton |
+| Customer credit hold check | `adapters/credit_check.py` | Phase 4b | Skeleton |
+| CreditCheckResult (approve / hold / escalate) | `adapters/credit_check.py` | Phase 4b | Skeleton |
+| Chargeback deduction tracking (28-day window) | `adapters/chargeback_tracker.py` | Phase 7b | Skeleton |
+| Dispute window countdown + escalation alerts | `adapters/chargeback_tracker.py` | Phase 7b | Skeleton |
+| Auto-draft dispute submission email | `adapters/chargeback_tracker.py` | Phase 7b | Skeleton |
+
 ## Obsidian Links
 - [[brain/HERMES]] | [[brain/ARCHITECTURE]] | [[brain/AGENTS]]

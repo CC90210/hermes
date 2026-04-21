@@ -14,6 +14,8 @@
 
 Hermes is a self-managing ecosystem of specialized sub-agents that handle the entire order-to-invoice lifecycle for wholesale distributors. Hermes reads purchase orders from email, enters them into the POS system, retrieves invoices, and emails them back — with zero manual intervention.
 
+Hermes also handles the compliance layer — ASN generation (EDI 856), GS1-128 carton labels, PO acknowledgments (EDI 855), remittance reconciliation (EDI 820), and chargeback dispute tracking — that turns "order automation" into "chargeback prevention." For a Walgreens vendor, this compliance stack is the difference between a system that saves time and one that prevents $50,000–$150,000/year in automatic fines under the Walgreens Cost Recovery Program.
+
 ## Sub-Agents (Hermes's Team)
 
 - **Email Agent** — monitors the inbox, detects incoming POs, sends invoices back
