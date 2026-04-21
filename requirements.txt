@@ -24,5 +24,5 @@ playwright>=1.48.0
 pytest>=8.0.0
 pytest-asyncio>=0.24.0
 
-# EDI (optional - Phase 2)
-# bots-edi>=1.0.0
+# EDI / Label generation (Phase 2b)
+reportlab>=4.0.0
