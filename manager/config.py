@@ -52,6 +52,11 @@ class Config:
         default_factory=lambda: Path(os.environ.get("DB_PATH", "./storage/lowinger.db"))
     )
 
+    # Company info
+    company_name: str = field(
+        default_factory=lambda: os.environ.get("COMPANY_NAME", "Lowinger")
+    )
+
     # Escalation
     escalation_email: str = field(
         default_factory=lambda: os.environ.get("ESCALATION_EMAIL", "")
@@ -70,6 +75,19 @@ def _validated_a2000_mode(value: str) -> A2000Mode:
         raise ValueError(
             f"A2000_MODE must be one of {allowed}, got '{value}'"
         )
+    # Validate mode-specific required variables
+    if value == "api":
+        for key in ("A2000_API_URL", "A2000_API_KEY"):
+            if not os.getenv(key):
+                raise EnvironmentError(
+                    f"A2000_MODE=api requires {key} to be set in the environment."
+                )
+    elif value == "edi":
+        for key in ("EDI_OUTPUT_DIR", "EDI_SENDER_ID", "EDI_RECEIVER_ID"):
+            if not os.getenv(key):
+                raise EnvironmentError(
+                    f"A2000_MODE=edi requires {key} to be set in the environment."
+                )
     return value  # type: ignore[return-value]
 
 

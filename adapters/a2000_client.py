@@ -5,7 +5,7 @@ import os
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -79,7 +79,7 @@ class MockA2000Client(A2000ClientBase):
             "po_number": po.po_number,
             "customer_name": po.customer_name,
             "line_item_count": len(po.line_items),
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         logger.info(
             "MockA2000Client: created order %s (invoice %s) for PO %s",
@@ -176,10 +176,10 @@ class EDIA2000Client(A2000ClientBase):
         self._receiver_id: str = os.environ.get("EDI_RECEIVER_ID", "A2000")
 
     def _build_x12_850(self, po: POData, order_id: str) -> str:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         date_str = now.strftime("%y%m%d")
         time_str = now.strftime("%H%M")
-        isa_control = now.strftime("%y%m%d%H%M")
+        isa_control = f"{uuid.uuid4().int % 10**9:09d}"
         gs_control = now.strftime("%m%d%H%M%S")[:9]
         st_control = "0001"
 

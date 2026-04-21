@@ -119,6 +119,9 @@ class POSAgent:
 
         pdf_bytes: bytes = await a2000_client.get_invoice(str(order_id))
 
+        if not pdf_bytes:
+            raise ValueError(f"A2000 returned empty invoice for order {order_id}")
+
         invoice_dir = pathlib.Path(self._config.log_dir) / "invoices"
         invoice_dir.mkdir(parents=True, exist_ok=True)
         invoice_path = invoice_dir / f"{order_id}.pdf"

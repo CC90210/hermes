@@ -13,9 +13,11 @@ at its current status and is retried (or escalated) by handle_failures().
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 import signal
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -28,6 +30,8 @@ from agents.pos_agent import POSAgent  # noqa: E402
 from manager.config import config  # noqa: E402  (after load_dotenv)
 from storage.db import (  # noqa: E402
     OrderStatus,
+    get_order,
+    increment_retry_count,
     init_db,
     list_orders_by_status,
     log_audit,
@@ -196,7 +200,7 @@ class Orchestrator:
 
         # Step 5 — email invoice back to customer
         try:
-            await self._email_agent.send_invoice(order_id, invoice_path)
+            await self._send_invoice_for_order(order_id, invoice_path)
             await update_order_status(config.db_path, order_id, OrderStatus.EMAILED)
             logger.info("Order %d: invoice emailed to customer", order_id)
         except Exception:
@@ -205,6 +209,31 @@ class Orchestrator:
             return False
 
         return True
+
+    async def _send_invoice_for_order(self, order_id: int, invoice_path: Path) -> None:
+        """Look up order details and call send_invoice with the correct signature."""
+        order = await get_order(config.db_path, order_id)
+        if order is None:
+            raise ValueError(f"Order {order_id} not found when trying to email invoice")
+        customer_email: str = order.get("customer_email") or ""
+        po_number: str = order.get("po_number") or "UNKNOWN"
+        invoice_num = invoice_path.stem  # filename without extension as invoice ref
+        subject = (
+            f"Invoice {invoice_num} — PO {po_number} | {config.company_name}"
+        )
+        body = (
+            f"Hi,\n\nPlease find attached invoice {invoice_num} for PO {po_number}.\n\n"
+            f"Thank you for your business.\n\n— Hermes (on behalf of {config.company_name})"
+        )
+        pdf_bytes = invoice_path.read_bytes()
+        filename = f"invoice_{invoice_num}.pdf"
+        await self._email_agent.send_invoice(
+            to=customer_email,
+            subject=subject,
+            body=body,
+            attachment=pdf_bytes,
+            filename=filename,
+        )
 
     async def _resume_stalled_orders(self, cycle_id: int) -> int:
         """Re-attempt orders stalled at PARSED or ENTERED from prior cycles."""
@@ -229,7 +258,7 @@ class Orchestrator:
         try:
             invoice_path = await self._pos_agent.retrieve_invoice(order_id, self._a2000)
             await update_order_status(config.db_path, order_id, OrderStatus.INVOICED)
-            await self._email_agent.send_invoice(order_id, invoice_path)
+            await self._send_invoice_for_order(order_id, invoice_path)
             await update_order_status(config.db_path, order_id, OrderStatus.EMAILED)
             return True
         except Exception:
@@ -245,46 +274,57 @@ class Orchestrator:
 
     async def handle_failures(self) -> None:
         """Review FAILED orders and decide: retry or escalate to Emmanuel."""
+        from storage.db import get_audit_log
+
         failed_orders = await list_orders_by_status(config.db_path, OrderStatus.FAILED)
         if not failed_orders:
             return
 
-        retry_count = 0
-        escalate_count = 0
+        retried = 0
+        escalated = 0
 
         for order in failed_orders:
             order_id = order["id"]
             po_number = order.get("po_number", "unknown")
             customer = order.get("customer_name", "unknown")
+            order_retry_count: int = order.get("retry_count", 0)
 
-            # Count how many times this order has appeared in audit_log as failed
-            from storage.db import get_audit_log
-            logs = await get_audit_log(config.db_path, agent_name="orchestrator")
-            failure_events = [
-                e for e in logs
-                if e.get("action") == "cycle_complete"
-            ]
-            # Simple heuristic: if order has been failed for > _MAX_RETRIES cycles, escalate
-            # (We use the order's updated_at age as a proxy since we don't store per-order retry count)
-            if len(failure_events) >= _MAX_RETRIES:
-                await self.escalate(
-                    f"Order #{po_number} (customer: {customer}, id: {order_id}) "
-                    f"has failed {_MAX_RETRIES}+ times and requires manual review."
+            if order_retry_count >= _MAX_RETRIES:
+                # Check if we already escalated this order to avoid repeating
+                existing_logs = await get_audit_log(config.db_path, agent_name="orchestrator", limit=500)
+                already_escalated = any(
+                    e.get("action") == "escalation_sent"
+                    and isinstance(e.get("details_json"), str)
+                    and f'"order_id": {order_id}' in e.get("details_json", "")
+                    for e in existing_logs
                 )
-                escalate_count += 1
+                if already_escalated:
+                    logger.info(
+                        "handle_failures: order %d already escalated, skipping", order_id
+                    )
+                    continue
+                await self.escalate(
+                    order_id=order_id,
+                    message=(
+                        f"Order #{po_number} (customer: {customer}, id: {order_id}) "
+                        f"has failed {order_retry_count} times and requires manual review."
+                    ),
+                )
+                escalated += 1
             else:
-                # Reset to PARSED so next cycle picks it up
+                # Increment per-order retry counter and reset status for next cycle
+                await increment_retry_count(config.db_path, order_id)
                 await update_order_status(config.db_path, order_id, OrderStatus.PARSED)
                 await log_audit(
                     config.db_path,
                     agent_name="orchestrator",
                     action="order_retry_queued",
-                    details={"order_id": order_id, "po_number": po_number},
+                    details={"order_id": order_id, "po_number": po_number, "retry_count": order_retry_count + 1},
                 )
-                retry_count += 1
+                retried += 1
 
         logger.info(
-            "handle_failures: %d retried, %d escalated", retry_count, escalate_count
+            "handle_failures: %d retried, %d escalated", retried, escalated
         )
 
     # ------------------------------------------------------------------
@@ -322,16 +362,17 @@ class Orchestrator:
     # Escalation
     # ------------------------------------------------------------------
 
-    async def escalate(self, message: str) -> None:
+    async def escalate(self, message: str, order_id: int | None = None) -> None:
         """Send an alert email to Emmanuel about an issue requiring attention."""
         escalation_addr = config.escalation_email
         logger.warning("ESCALATION → %s: %s", escalation_addr, message)
 
         subject = "[Hermes] Action Required"
+        safe_message = html.escape(message)
         body = (
             f"<p>Hello Emmanuel,</p>"
             f"<p>Hermes requires your attention:</p>"
-            f"<blockquote>{message}</blockquote>"
+            f"<blockquote>{safe_message}</blockquote>"
             f"<p>Timestamp: {datetime.now(timezone.utc).isoformat()}</p>"
             f"<p>— Hermes</p>"
         )
@@ -342,15 +383,20 @@ class Orchestrator:
                 subject=subject,
                 body_html=body,
             )
+            await log_audit(
+                config.db_path,
+                agent_name="orchestrator",
+                action="escalation_sent",
+                details={"to": escalation_addr, "message": message, "order_id": order_id},
+            )
         except Exception:
             logger.exception("Failed to send escalation email to %s", escalation_addr)
-
-        await log_audit(
-            config.db_path,
-            agent_name="orchestrator",
-            action="escalation_sent",
-            details={"to": escalation_addr, "message": message},
-        )
+            await log_audit(
+                config.db_path,
+                agent_name="orchestrator",
+                action="escalation_failed",
+                details={"to": escalation_addr, "message": message, "order_id": order_id},
+            )
 
     # ------------------------------------------------------------------
     # Main loop
@@ -378,7 +424,8 @@ class Orchestrator:
         )
 
         while not self._shutdown.is_set():
-            cycle_start = asyncio.get_event_loop().time()
+            loop = asyncio.get_running_loop()
+            cycle_start = loop.time()
 
             try:
                 await self.run_cycle()
@@ -386,7 +433,7 @@ class Orchestrator:
             except Exception:
                 logger.exception("Unhandled error in run_cycle — continuing.")
 
-            elapsed = asyncio.get_event_loop().time() - cycle_start
+            elapsed = asyncio.get_running_loop().time() - cycle_start
             wait = max(0.0, interval_seconds - elapsed)
 
             try:

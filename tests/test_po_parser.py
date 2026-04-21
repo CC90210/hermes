@@ -59,15 +59,16 @@ def _ollama_response(extracted: dict) -> Response:
 # test_parse_plain_text_po
 # ---------------------------------------------------------------------------
 
+@pytest.mark.asyncio
 @respx.mock
-def test_parse_plain_text_po(sample_po_text: str) -> None:
+async def test_parse_plain_text_po(sample_po_text: str) -> None:
     """parse_po on plain text routes to Ollama and returns populated POData."""
     respx.post("http://localhost:11434/api/generate").mock(
         return_value=_ollama_response(_SAMPLE_EXTRACTED)
     )
 
     content = sample_po_text.encode()
-    po = parse_po(content, "po.txt", "text/plain")
+    po = await parse_po(content, "po.txt", "text/plain")
 
     assert po.po_number == "PO-2026-04567"
     assert po.customer_name == "Walgreens #04231"
@@ -88,8 +89,9 @@ def test_parse_plain_text_po(sample_po_text: str) -> None:
 # test_parse_pdf_po
 # ---------------------------------------------------------------------------
 
+@pytest.mark.asyncio
 @respx.mock
-def test_parse_pdf_po(sample_po_text: str) -> None:
+async def test_parse_pdf_po(sample_po_text: str) -> None:
     """parse_po with a .pdf filename triggers PDF path; pdfplumber is mocked."""
     respx.post("http://localhost:11434/api/generate").mock(
         return_value=_ollama_response(_SAMPLE_EXTRACTED)
@@ -104,7 +106,7 @@ def test_parse_pdf_po(sample_po_text: str) -> None:
     mock_pdf_ctx.pages = [mock_page]
 
     with patch("pdfplumber.open", return_value=mock_pdf_ctx):
-        po = parse_po(b"%PDF-1.4 fake", "walgreens_po.pdf", "application/pdf")
+        po = await parse_po(b"%PDF-1.4 fake", "walgreens_po.pdf", "application/pdf")
 
     assert po.po_number == "PO-2026-04567"
     assert len(po.line_items) == 3

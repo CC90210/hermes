@@ -220,7 +220,10 @@ def _extract_text_edi(content: bytes) -> str:
 # LLM extraction
 # ---------------------------------------------------------------------------
 
-def _call_ollama(text: str) -> dict[str, Any]:
+_MAX_ATTACHMENT_BYTES: int = 10 * 1024 * 1024  # 10 MB
+
+
+async def _call_ollama(text: str) -> dict[str, Any]:
     prompt = _EXTRACTION_PROMPT.replace("{text}", text[:12000])
     payload = {
         "model": OLLAMA_MODEL,
@@ -229,14 +232,16 @@ def _call_ollama(text: str) -> dict[str, Any]:
         "format": "json",
         "options": {"temperature": 0.0},
     }
-    resp = httpx.post(
-        f"{OLLAMA_HOST}/api/generate",
-        json=payload,
-        timeout=120.0,
-    )
-    resp.raise_for_status()
-    raw_response = resp.json().get("response", "{}")
-    return json.loads(raw_response)
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(f"{OLLAMA_HOST}/api/generate", json=payload)
+        resp.raise_for_status()
+    raw = resp.json().get("response", "{}")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"Ollama returned invalid JSON (first 200 chars): {raw[:200]}"
+        ) from e
 
 
 def _build_po_data(extracted: dict[str, Any], raw_text: str) -> POData:
@@ -278,13 +283,18 @@ def _build_po_data(extracted: dict[str, Any], raw_text: str) -> POData:
 # Public API
 # ---------------------------------------------------------------------------
 
-def parse_po(content: bytes, filename: str, content_type: str) -> POData:
+async def parse_po(content: bytes, filename: str, content_type: str) -> POData:
     """Parse a purchase order from raw bytes.
 
     Detects format from the filename extension and content_type, extracts
     plain text, then sends it to the local Ollama model for structured
     extraction.
     """
+    if len(content) > _MAX_ATTACHMENT_BYTES:
+        raise ValueError(
+            f"Attachment too large: {len(content)} bytes (limit {_MAX_ATTACHMENT_BYTES})"
+        )
+
     name_lower = filename.lower()
     ct_lower = content_type.lower()
 
@@ -300,7 +310,7 @@ def parse_po(content: bytes, filename: str, content_type: str) -> POData:
         # Plain text, email body, CSV, etc.
         raw_text = content.decode("utf-8", errors="replace")
 
-    extracted = _call_ollama(raw_text)
+    extracted = await _call_ollama(raw_text)
     return _build_po_data(extracted, raw_text)
 
 
@@ -313,6 +323,29 @@ class POParser:
 
     def __init__(self, config: Any) -> None:  # config is manager.config.AppConfig
         self._config = config
+
+    @staticmethod
+    def _pick_attachment(
+        attachments: list[tuple[str, str, bytes]],
+    ) -> tuple[str, str, bytes] | None:
+        """Choose the most PO-like attachment, logging the decision."""
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+        if not attachments:
+            return None
+        _PO_NAME_TOKENS = ("po", "order", "purchase")
+        preferred = [
+            att for att in attachments
+            if any(tok in att[0].lower() for tok in _PO_NAME_TOKENS)
+        ]
+        chosen = preferred[0] if preferred else attachments[0]
+        _log.info(
+            "parse_and_persist: chose attachment %r (PO-name match=%s) from %d candidate(s)",
+            chosen[0],
+            bool(preferred),
+            len(attachments),
+        )
+        return chosen
 
     async def parse_and_persist(self, raw_email: dict[str, Any]) -> int:
         """Parse a raw email dict into structured PO data and persist to the DB.
@@ -334,14 +367,15 @@ class POParser:
         attachments: list[tuple[str, str, bytes]] = raw_email.get("attachments") or []
 
         po: POData | None = None
-        for filename, content_type, content in attachments:
-            po = parse_po(content, filename, content_type)
-            break  # use the first PO-looking attachment
+        chosen = self._pick_attachment(attachments)
+        if chosen is not None:
+            filename, content_type, content = chosen
+            po = await parse_po(content, filename, content_type)
 
         if po is None:
             # Fall back to the email body
             body_bytes = (raw_email.get("body") or "").encode()
-            po = parse_po(body_bytes, "email_body.txt", "text/plain")
+            po = await parse_po(body_bytes, "email_body.txt", "text/plain")
 
         db_path = self._config.db_path
         order_id = await create_order(

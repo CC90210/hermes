@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import email
 import logging
+import re
 import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -16,6 +17,12 @@ from manager.config import config
 from storage.db import log_audit
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_header(value: str) -> str:
+    """Strip CR, LF, NUL to prevent MIME header injection."""
+    return re.sub(r"[\r\n\x00]", "", value).strip()
+
 
 _PO_SUBJECT_TOKENS: tuple[str, ...] = (
     "po",
@@ -71,8 +78,26 @@ class EmailAgent:
         return client
 
     async def is_connected(self) -> bool:
-        """Return True if the IMAP connection is currently active."""
-        return self._imap is not None
+        """Return True if the IMAP connection is currently active (real NOOP check)."""
+        if self._imap is None:
+            return False
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(None, self._imap.noop)
+            return True
+        except Exception:
+            self._imap = None  # reset so next connect() reconnects
+            return False
+
+    async def mark_seen(self, uid: str) -> None:
+        """Mark a message UID as \\Seen on the IMAP server."""
+        if self._imap is None:
+            return
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            None,
+            lambda: self._imap.add_flags(uid, [b"\\Seen"]),  # type: ignore[union-attr]
+        )
 
     # ------------------------------------------------------------------
     # Inbox polling — returns raw email dicts for the orchestrator
@@ -165,6 +190,11 @@ class EmailAgent:
         attachment: bytes,
         filename: str,
     ) -> None:
+        # Sanitize at the async boundary so callers always get clean values
+        to = _sanitize_header(to)
+        subject = _sanitize_header(subject)
+        filename = _sanitize_header(filename).replace("/", "_").replace("\\", "_")[:200]
+
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
             None,
@@ -191,6 +221,7 @@ class EmailAgent:
         attachment: bytes,
         filename: str,
     ) -> None:
+        # Inputs already sanitized by send_invoice(); kept clean here too for safety
         msg = MIMEMultipart()
         msg["From"] = config.email_user
         msg["To"] = to
@@ -201,7 +232,7 @@ class EmailAgent:
         part["Content-Disposition"] = f'attachment; filename="{filename}"'
         msg.attach(part)
 
-        with smtplib.SMTP(config.email_smtp_host, config.email_smtp_port) as smtp:
+        with smtplib.SMTP(config.email_smtp_host, config.email_smtp_port, timeout=30) as smtp:
             smtp.ehlo()
             smtp.starttls()
             smtp.login(config.email_user, config.email_password)
@@ -222,10 +253,10 @@ class EmailAgent:
     def _sync_send_alert(self, to_addr: str, subject: str, body_html: str) -> None:
         msg = MIMEMultipart("alternative")
         msg["From"] = config.email_user
-        msg["To"] = to_addr
-        msg["Subject"] = subject
+        msg["To"] = _sanitize_header(to_addr)
+        msg["Subject"] = _sanitize_header(subject)
         msg.attach(MIMEText(body_html, "html"))
-        with smtplib.SMTP(config.email_smtp_host, config.email_smtp_port) as smtp:
+        with smtplib.SMTP(config.email_smtp_host, config.email_smtp_port, timeout=30) as smtp:
             smtp.ehlo()
             smtp.starttls()
             smtp.login(config.email_user, config.email_password)

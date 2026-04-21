@@ -44,9 +44,12 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_email  TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'received',
     raw_email_id    TEXT,
+    retry_count     INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 
 CREATE TABLE IF NOT EXISTS order_lines (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,6 +135,21 @@ async def update_order_status(
             (status.value, _now(), order_id),
         )
         await db.commit()
+
+
+async def increment_retry_count(db_path: Path | str, order_id: int) -> int:
+    """Increment retry_count for an order and return the new value."""
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute(
+            "UPDATE orders SET retry_count = retry_count + 1, updated_at = ? WHERE id = ?",
+            (_now(), order_id),
+        )
+        await db.commit()
+        async with db.execute(
+            "SELECT retry_count FROM orders WHERE id = ?", (order_id,)
+        ) as cur:
+            row = await cur.fetchone()
+            return row[0] if row else 0
 
 
 async def get_order(db_path: Path | str, order_id: int) -> dict[str, Any] | None:
