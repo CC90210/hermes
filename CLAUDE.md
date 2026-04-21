@@ -38,6 +38,8 @@ Answer using MCP tools and local CLIs. Do NOT dump file contents. Keep answers 1
 - Quote generator: `python scripts/quote_tool.py`
 - Chargeback tracker: `python scripts/chargeback_tool.py`
 - Health check: `python scripts/health_tool.py`
+- Print ops (warehouse PO, invoice, ZPL labels): `python scripts/printer_tool.py`
+- System ops (notifications, folder watch, open files, clipboard, screenshot): `python scripts/system_tool.py`
 
 Full routing table: @brain/QUICK_REFERENCE.md
 

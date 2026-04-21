@@ -120,5 +120,50 @@ See `docs/BUILD_PLAN.md` for phase definitions and timelines.
 | Dispute window countdown + escalation alerts | `adapters/chargeback_tracker.py` | Phase 7b | Skeleton |
 | Auto-draft dispute submission email | `adapters/chargeback_tracker.py` | Phase 7b | Skeleton |
 
+---
+
+## Phase 2c — Computer Control (LIVE)
+
+### printer_tool (`scripts/printer_tool.py`)
+
+| Capability | CLI | Notes |
+|-----------|-----|-------|
+| List installed printers | `--list [--json]` | PRINTER_ENUM_LOCAL + CONNECTIONS |
+| Show default printer | `--default [--json]` | win32print.GetDefaultPrinter() |
+| Print PDF / document | `--print <file> [--printer NAME] [--copies N]` | ShellExecute printto verb |
+| Send raw ZPL file to thermal | `--print-zpl <file.zpl> --printer NAME` | win32print RAW datatype |
+| Send raw ZPL string to thermal | `--print-zpl-string "^XA...^XZ" --printer NAME` | Same path, string input |
+| Query job status | `--status <job_id> [--printer NAME]` | win32print.GetJob() |
+| Cancel print job | `--cancel <job_id> --printer NAME` | JOB_CONTROL_DELETE |
+
+Requires: `pywin32` (Windows only). Degrades gracefully on non-Windows with clear error message.
+
+### system_tool (`scripts/system_tool.py`)
+
+| Capability | CLI | Notes |
+|-----------|-----|-------|
+| Desktop notification | `--notify "Title" "Body" [--urgent]` | plyer primary, win10toast fallback |
+| Open file / URL | `--open <path>` | os.startfile on Windows |
+| Watch folder for new files | `--watch <folder> [--pattern "*.pdf"] [--forever] [--action CMD]` | watchdog streaming JSON |
+| Read clipboard | `--clipboard-read` | pyperclip |
+| Write clipboard | `--clipboard-write "text"` | pyperclip |
+| Screenshot | `--screenshot [--output path.png]` | Pillow ImageGrab |
+
+Safety: path traversal (`..`) rejected; `--action` whitelisted to `python scripts/` prefix.
+
+### warehouse_po_pdf (`adapters/warehouse_po_pdf.py`)
+
+| Capability | Function | Notes |
+|-----------|----------|-------|
+| Generate one-page warehouse PO PDF | `generate_warehouse_po(po, order_id) → bytes` | reportlab, letter size |
+
+### Auto-print wiring
+
+| Trigger | Gate | Action |
+|---------|------|--------|
+| Order entered into A2000 (Step 3) | `HERMES_PRINT_WAREHOUSE_PO=1` | `pos_agent.print_warehouse_po()` → PDF → printer_tool |
+| Print failure | Always | Escalation email + audit log; order continues |
+
 ## Obsidian Links
 - [[brain/HERMES]] | [[brain/ARCHITECTURE]] | [[brain/AGENTS]]
+- [[skills/printing/SKILL]] | [[skills/computer-control/SKILL]]

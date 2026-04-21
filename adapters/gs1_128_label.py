@@ -268,6 +268,54 @@ def generate_label_zpl(
 
 
 # ---------------------------------------------------------------------------
+# Thermal printer send path
+# ---------------------------------------------------------------------------
+
+
+async def print_label(zpl: str, printer_name: str) -> dict:
+    """Send a ZPL string to a physical Zebra thermal printer.
+
+    Delegates to ``scripts/printer_tool.py --print-zpl-string`` via subprocess
+    so this adapter stays side-effect-free during testing.
+
+    Parameters
+    ----------
+    zpl:
+        ZPL II string as produced by :func:`generate_label_zpl`.
+    printer_name:
+        Exact Windows printer name (e.g. "ZDesigner ZT411-300dpi ZPL").
+        Use ``printer_tool.py --list`` to find the correct name.
+
+    Returns
+    -------
+    dict
+        Result dict from printer_tool, always contains ``success`` key.
+        Never raises — failures are captured and returned.
+    """
+    import subprocess
+    import sys
+    import json as _json
+
+    cmd = [
+        sys.executable,
+        "scripts/printer_tool.py",
+        "--print-zpl-string",
+        zpl,
+        "--printer",
+        printer_name,
+        "--json",
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)  # noqa: S603
+        try:
+            return _json.loads(proc.stdout.strip() or "{}")
+        except Exception:  # noqa: BLE001
+            return {"success": proc.returncode == 0, "raw": proc.stdout, "stderr": proc.stderr}
+    except Exception as exc:  # noqa: BLE001
+        return {"success": False, "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
 # PDF fallback
 # ---------------------------------------------------------------------------
 

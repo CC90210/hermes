@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import logging
+import os
 import pathlib
+import subprocess
+import sys
+import tempfile
 from typing import Any
 
 from adapters.po_parser import POData
@@ -135,6 +139,67 @@ class POSAgent:
         )
         logger.info("Invoice for order_id=%s saved to %s (%d bytes)", order_id, invoice_path, len(pdf_bytes))
         return invoice_path
+
+    # ------------------------------------------------------------------
+    # Warehouse PO printing
+    # ------------------------------------------------------------------
+
+    async def print_warehouse_po(self, order_id: int, po: POData) -> dict[str, Any]:
+        """Generate a warehouse PO PDF and send it to the configured printer.
+
+        Controlled by env vars:
+          HERMES_PRINT_WAREHOUSE_PO=1   — must be set to enable
+          WAREHOUSE_PRINTER_NAME        — target printer (blank = system default)
+
+        Never raises: failures are logged and returned in the result dict so
+        the caller can escalate without failing the order.
+        """
+        if os.environ.get("HERMES_PRINT_WAREHOUSE_PO", "0") != "1":
+            return {"skipped": True, "reason": "HERMES_PRINT_WAREHOUSE_PO not set"}
+
+        try:
+            from adapters.warehouse_po_pdf import generate_warehouse_po
+
+            pdf_bytes = generate_warehouse_po(po, str(order_id))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("print_warehouse_po: PDF generation failed: %s", exc)
+            return {"success": False, "error": f"PDF generation failed: {exc}"}
+
+        printer_name = os.environ.get("WAREHOUSE_PRINTER_NAME", "").strip()
+
+        # Write PDF to a temp file then call printer_tool via subprocess
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                tmp.write(pdf_bytes)
+                tmp_path = tmp.name
+
+            cmd: list[str] = [sys.executable, "scripts/printer_tool.py", "--print", tmp_path, "--json"]
+            if printer_name:
+                cmd += ["--printer", printer_name]
+
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)  # noqa: S603
+            try:
+                result_data = __import__("json").loads(proc.stdout.strip() or "{}")
+            except Exception:  # noqa: BLE001
+                result_data = {"raw": proc.stdout, "stderr": proc.stderr}
+
+            success = proc.returncode == 0
+        except Exception as exc:  # noqa: BLE001
+            success = False
+            result_data = {"error": str(exc)}
+        finally:
+            try:
+                pathlib.Path(tmp_path).unlink(missing_ok=True)
+            except Exception:  # noqa: BLE001
+                pass
+
+        await log_audit(
+            self._config.db_path,
+            agent_name="pos_agent",
+            action="print_warehouse_po" if success else "print_warehouse_po_failed",
+            details={"order_id": order_id, "printer": printer_name or "(default)", **result_data},
+        )
+        return {"success": success, "printer": printer_name or "(default)", **result_data}
 
     # ------------------------------------------------------------------
     # Legacy / standalone helpers (kept for backward compat)

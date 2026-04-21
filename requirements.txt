@@ -26,3 +26,9 @@ pytest-asyncio>=0.24.0
 
 # EDI / Label generation (Phase 2b)
 reportlab>=4.0.0
+
+# Computer control (Phase 2c)
+pywin32>=306 ; platform_system == "Windows"
+plyer>=2.1
+watchdog>=4.0
+pyperclip>=1.9

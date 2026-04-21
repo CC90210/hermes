@@ -199,6 +199,61 @@ class Orchestrator:
             await update_order_status(config.db_path, order_id, OrderStatus.FAILED)
             return False
 
+        # Step 3b — warehouse PO print (optional, non-blocking)
+        import os as _os
+        if _os.environ.get("HERMES_PRINT_WAREHOUSE_PO", "0") == "1":
+            try:
+                # Reconstruct POData for the print helper
+                from adapters.po_parser import LineItem, POData
+                from storage.db import get_order as _get_order, get_order_lines as _get_lines
+
+                row = await _get_order(config.db_path, order_id)
+                lines = await _get_lines(config.db_path, order_id)
+                po_for_print = POData(
+                    po_number=row.get("po_number"),
+                    customer_name=row.get("customer_name"),
+                    customer_email=row.get("customer_email"),
+                    customer_address=row.get("customer_address"),
+                    ship_to_address=row.get("ship_to_address"),
+                    order_date=row.get("order_date"),
+                    ship_date=row.get("ship_date"),
+                    notes=row.get("notes"),
+                    raw_text=row.get("raw_text", ""),
+                    internal_order_id=str(order_id),
+                    line_items=[
+                        LineItem(
+                            sku=ln.get("sku") or None,
+                            description=ln.get("description") or "",
+                            quantity=int(ln.get("quantity") or 0),
+                            unit_price=float(ln.get("unit_price") or 0.0),
+                        )
+                        for ln in lines
+                    ],
+                )
+                print_result = await self._pos_agent.print_warehouse_po(order_id, po_for_print)
+                if not print_result.get("success") and not print_result.get("skipped"):
+                    logger.warning(
+                        "Cycle %d: warehouse PO print failed for order %d: %s",
+                        cycle_id, order_id, print_result.get("error", "unknown"),
+                    )
+                    await self.escalate(
+                        order_id=order_id,
+                        message=(
+                            f"Warehouse PO print failed for order #{order_id}. "
+                            f"Error: {print_result.get('error', 'unknown')}. "
+                            "The order was entered successfully — please print manually."
+                        ),
+                    )
+                else:
+                    logger.info("Cycle %d: warehouse PO printed for order %d", cycle_id, order_id)
+            except Exception:
+                # Print failure must NEVER fail the order
+                logger.exception(
+                    "Cycle %d: unexpected error during warehouse PO print for order %d "
+                    "(order continues normally)",
+                    cycle_id, order_id,
+                )
+
         # Step 4 — retrieve invoice from A2000
         try:
             invoice_path = await self._pos_agent.retrieve_invoice(order_id, self._a2000)

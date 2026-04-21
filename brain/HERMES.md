@@ -78,3 +78,11 @@ Hermes does NOT:
 - Make business decisions (pricing, credit, inventory — those stay with the client)
 - Modify POs without explicit rules (errors escalate, not guess)
 - Reach out to new customers unsolicited (Hermes handles incoming orders, not outbound sales)
+
+## What Hermes Will NEVER Do Without Asking You
+
+- Run destructive OS commands: `del`, `rm`, `rmdir`, `format`, `shutdown`, `reboot`, `taskkill`
+- Uninstall or modify system applications
+- Change printer defaults without your confirmation
+- Execute shell commands outside the `python scripts/` whitelist (unless you set `HERMES_UNSAFE_ACTIONS=1`)
+- Modify, move, or delete any file outside the project directory or your user home
