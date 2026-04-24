@@ -126,6 +126,12 @@ Runtime: 0.11s
 
 ---
 
+## For client meetings — the demo package
+
+Open **[`docs/DEMO.html`](docs/DEMO.html)** in a browser for the self-contained client-facing visual (dark theme, 10 sections, works offline, prints clean to PDF). Back it up with `python -m demo.run_demo` in a terminal for the live ~0.1s pipeline proof. Full walkthrough script and agenda live in [`docs/MEETING_PLAN.md`](docs/MEETING_PLAN.md). Architecture diagrams for markdown viewers are in [`docs/DEMO.md`](docs/DEMO.md).
+
+---
+
 ## Installation
 
 One command on Windows:

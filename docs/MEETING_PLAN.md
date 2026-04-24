@@ -18,7 +18,7 @@ Get Emmanuel to sign the 14-day free trial agreement before he leaves the room. 
 ### Night Before
 - [ ] Laptop charged, charger packed, second charger in bag
 - [ ] Ollama running locally, model pre-loaded (no cold-start lag)
-- [ ] Hermes v0.1.0 pulled from `CC90210/hermes`, mock mode verified
+- [ ] Hermes v0.2.0 pulled from `CC90210/hermes`, mock mode verified (215/215 tests green)
 - [ ] `docs/DEMO.html` open in Chrome full-screen, pre-loaded — **this is the primary visual now that we can't demo against his real A2000**
 - [ ] `demo.bat` (mock mode) tested end-to-end — confirm <1 second runtime (for the live terminal run that backs up DEMO.html)
 - [ ] Sample PO file pre-loaded so we can drop it live after DEMO.html if he wants to see the actual terminal
