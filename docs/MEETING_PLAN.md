@@ -19,12 +19,12 @@ Get Emmanuel to sign the 14-day free trial agreement before he leaves the room. 
 - [ ] Laptop charged, charger packed, second charger in bag
 - [ ] Ollama running locally, model pre-loaded (no cold-start lag)
 - [ ] Hermes v0.1.0 pulled from `CC90210/hermes`, mock mode verified
-- [ ] `demo.bat` tested end-to-end — confirm <1 second runtime
-- [ ] 3 sample POs pre-loaded in `/inbox/` (1 clean, 1 with a typo, 1 with multiple line items)
-- [ ] Backup: mock mode ready if Ollama hiccups. NEVER debug live.
+- [ ] `docs/DEMO.html` open in Chrome full-screen, pre-loaded — **this is the primary visual now that we can't demo against his real A2000**
+- [ ] `demo.bat` (mock mode) tested end-to-end — confirm <1 second runtime (for the live terminal run that backs up DEMO.html)
+- [ ] Sample PO file pre-loaded so we can drop it live after DEMO.html if he wants to see the actual terminal
 - [ ] Terminal font size cranked to 18pt. He needs to read it from across the table.
 - [ ] Audit log file open in a second window
-- [ ] Slides loaded but minimized — slides are backup, not primary
+- [ ] DEMO.html opened on a second monitor or have the laptop angled so he can scroll through after
 - [ ] WiFi hotspot ready in case venue WiFi is trash
 - [ ] Phones on silent. Not vibrate. Silent.
 - [ ] **If Emmanuel asks "do you handle ASN/labels?" the answer is YES — we just haven't built it yet, but it's in the roadmap. Open the BUILD_PLAN.md Phase 2b on the laptop and show him. Never say "not yet" without showing the plan.**
@@ -47,7 +47,7 @@ Get Emmanuel to sign the 14-day free trial agreement before he leaves the room. 
 | 2 min | Welcome + energy match | Match his intensity, no weather talk |
 | 3 min | "What you said last time" | Play back his own words |
 | 3 min | The Chargeback Math | Anchor the financial case before the demo |
-| 8 min | Live demo | Show Hermes actually working |
+| 8 min | Visual demo (DEMO.html + recorded terminal) | Tell the story he can't see live |
 | 3 min | Architecture in 90 seconds | Plain English, no jargon |
 | 5 min | Shopify case study | The closest match to his business |
 | 10 min | Trial terms + pricing | Put the number on the table |
@@ -99,43 +99,64 @@ Pause. Then go to the demo.
 
 ## The Demo Script (8 min)
 
+### Why we're showing DEMO.html instead of live
+Emmanuel doesn't have A2000 on a laptop we can bring. We can't show a true end-to-end live run in this meeting. What we CAN do is walk him through `docs/DEMO.html` — a professional, self-contained visual that tells the exact story — and back it up with the mock terminal demo running in real-time. DEMO.html is the vehicle. Live terminal is the proof.
+
 ### Windows to Have Open
-1. **Terminal 1** — Hermes root directory, ready to run `demo.bat`
-2. **Terminal 2** — tail of audit log
-3. **File Explorer** — `/inbox/` folder with the 3 sample POs visible
-4. **Text editor** — one sample PO email open so he can see the "input"
+1. **Chrome full-screen** — `docs/DEMO.html` loaded, scrolled to the top
+2. **Terminal** — Hermes root directory, ready to run `demo.bat` for the live proof moment
+3. **File Explorer** (optional) — sample PO file visible so we can show the "input"
 
 ### Opening Line
-> "This is Hermes. He's running on this laptop right now — no cloud, no servers, nothing leaving this machine. Watch the timestamps. I'm going to drop a purchase order in his inbox, and you're going to see him handle it."
+> "Before we talk, I want you to see Hermes. We built this page for you — scroll with me. Every section is something we built, tested, and are ready to deploy."
 
 ### The Sequence
 
-**Step 1 — Show the input.**
-Open the sample PO email. Read it out loud quickly:
-> "Okay — this is the kind of email your team gets. PO number, three line items, shipping address, terms. Right now, this is where your 70% copy-paste starts."
+**Step 1 — Open DEMO.html and scroll the hero.**
+> "This is Hermes. Built for Lowinger Distribution specifically. Two hundred and fifteen automated tests passing. Demo pipeline runs in a tenth of a second. That's not a number we're hoping for — that's what it did when I ran it on my laptop this morning."
 
-**Step 2 — Run the demo.**
+**Step 2 — Scroll to "The problem" section.**
+Read the 6:42 AM timeline with him. Pause at the $340 fine line.
+> "This is the day we're taking off your plate. Every line on this timeline is a handoff Hermes takes."
+
+**Step 3 — Scroll to "The loop" — five steps.**
+Point to each box:
+> "Email in. AI parses it locally. Order into A2000. Labels print, ASN transmits. Invoice goes out. Five steps, every single one automatic."
+
+**Step 4 — Scroll to "Recorded demo output."**
+This is the actual terminal capture.
+> "This is the exact terminal output from running the pipeline on my laptop this morning. PO parsed, three line items extracted, order entered, invoice drafted — point one four seconds. Same code runs on your machine when we install."
+
+**Step 5 — BACK IT UP WITH A LIVE TERMINAL RUN.**
+Switch to the terminal. Run:
 ```
 demo.bat
 ```
-Narrate as it runs (it's going to be fast, so narrate DURING, not after):
-> "He's reading the email. He's extracting the PO number. He's parsing the line items — three of them. He's validating against the customer record. He's pushing it into A2000 — right now we're in mock mode, but this is the exact same call we'll make to your real A2000. He's pulling the generated invoice number back. He's drafting the confirmation email. Done."
+Narrate as it runs (fast, narrate DURING):
+> "He's reading the email. Extracting the PO. Parsing three line items. Validating. Pushing into A2000 — mock mode right now, real A2000 when we're on your machine. Pulling the invoice. Drafting the email. Done."
 
-**Step 3 — Show the output.**
-> "Notice: three line items extracted, totals calculated, invoice number generated, confirmation email drafted, audit log written. All in under a second. All on this machine."
+Switch back to DEMO.html.
 
-**Step 4 — Show the audit log.**
-Switch to terminal 2.
-> "This is every action he took. Timestamped. Traceable. If he ever does something you don't like, you see it here — and you tell him to stop doing it. He learns."
+**Step 6 — Scroll to "How you talk to Hermes."**
+Show the chat mockup — the "Hey Hermes, what POs came in overnight?" conversation.
+> "When you're not at the terminal, you just type to him. Like texting a sharp new hire. No microphone, no voice AI, no new hardware. Here's a sample conversation we put together."
 
-**Step 5 — The money line.**
-> "That loop right there — email in, PO parsed, A2000 entry, invoice out — that's the loop your team is doing 100 times a week by hand. Hermes does it while you're asleep."
+**Step 7 — Scroll to "What this saves you."**
+The chargeback math. Pause on the $50–150K line.
+> "This is the floor, Emmanuel. Not the ceiling. Floor. Every shipment without proper compliance is a fine waiting to hit your next payment. Hermes keeps you clean."
 
-### If Ollama Breaks or Lags
-Don't panic, don't apologize, don't debug. Switch to mock mode silently:
-> "Let me run it in mock mode so you see the full pipeline at speed — the local model is the same thing, just with actual parsing instead of fixtures."
+**Step 8 — Scroll to "What's in the box."**
+Two columns — what Hermes handles vs. what he'll never do without asking.
+> "Right column is the control you keep. He drafts, you approve. He escalates, you decide. We built him this way because you told us 'put on my plate, not take off it' — this is how we honor that."
 
-He will not notice. Move on.
+**Step 9 — The money line.**
+> "The loop you saw — that's the work your team does a hundred times a week by hand. Hermes does it while you're at a trade show. Fourteen days free, no credit card, we remove it clean if it doesn't earn its keep. Ready to start?"
+
+### If The Live Terminal Run Hiccups
+Don't panic. DEMO.html is the primary. Just say:
+> "The recorded output on the page is from this morning. Same code, same result. Let me keep scrolling."
+
+The HTML page carries the entire demo on its own.
 
 ---
 

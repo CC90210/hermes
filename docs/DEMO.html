@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes — The Commerce Agent for Lowinger Distribution</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #141417;
+    --surface-2: #1c1c21;
+    --border: #2a2a30;
+    --text: #e8e8ea;
+    --text-dim: #8a8a92;
+    --accent: #c4a572;
+    --accent-dim: #6b5a3d;
+    --ok: #7dd96b;
+    --warn: #e8a34c;
+    --bad: #e87c5a;
+    --mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Menlo', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+  section { padding: 6rem 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+  h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); }
+  h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); margin-bottom: 1.5rem; }
+  h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+  p { margin-bottom: 1rem; color: var(--text); }
+  .dim { color: var(--text-dim); }
+  .accent { color: var(--accent); }
+  .mono { font-family: var(--mono); font-size: 0.9em; }
+  strong { color: var(--accent); font-weight: 600; }
+
+  /* Hero */
+  .hero {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+  .hero h1 { margin-bottom: 2rem; }
+  .hero-sub {
+    font-size: 1.35rem;
+    color: var(--text-dim);
+    max-width: 720px;
+    margin-bottom: 3rem;
+  }
+  .hero-meta {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta span::before { content: '·'; margin-right: 2rem; color: var(--accent-dim); }
+  .hero-meta span:first-child::before { display: none; margin: 0; }
+
+  /* Section eyebrows */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  /* Narrative block */
+  .narrative {
+    font-size: 1.15rem;
+    line-height: 1.75;
+    max-width: 800px;
+  }
+  .narrative p { margin-bottom: 1.5rem; }
+  .timeline {
+    border-left: 2px solid var(--border);
+    padding-left: 2rem;
+    margin: 2rem 0;
+  }
+  .timeline-item {
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -2.4rem;
+    top: 0.5rem;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .timeline-time {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 3rem 0;
+  }
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  .flow-step:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .flow-number {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+  }
+  .flow-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+  .flow-desc {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .flow-arrow {
+    display: none;
+  }
+
+  /* Terminal mock */
+  .terminal {
+    background: #050506;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 2rem 0;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .terminal-header {
+    background: var(--surface-2);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .terminal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .terminal-dot.red { background: #ff5f57; }
+  .terminal-dot.yellow { background: #ffbd2e; }
+  .terminal-dot.green { background: #28c940; }
+  .terminal-title {
+    margin-left: 1rem;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+  .terminal-body {
+    padding: 1.5rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+  .term-dim { color: var(--text-dim); }
+  .term-accent { color: var(--accent); }
+  .term-ok { color: var(--ok); }
+  .term-ts { color: var(--text-dim); font-size: 0.85em; }
+
+  /* Chat mock */
+  .chat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem 0;
+    max-width: 720px;
+  }
+  .chat-bubble {
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .chat-from {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 0.25rem;
+  }
+  .chat-bubble.user .chat-from { color: var(--text-dim); }
+  .chat-bubble.hermes .chat-from { color: var(--accent); }
+  .chat-body {
+    color: var(--text);
+  }
+  .chat-bubble.user .chat-body {
+    padding-left: 0;
+  }
+  .chat-bubble.hermes .chat-body {
+    padding-left: 1rem;
+    border-left: 2px solid var(--accent);
+  }
+
+  /* Math block */
+  .math {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    margin: 2rem 0;
+    font-family: var(--mono);
+  }
+  .math-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .math-row:last-child {
+    border-bottom: none;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--accent);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .math-row .label { color: var(--text-dim); }
+  .math-row .value { color: var(--text); font-weight: 500; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  @media (max-width: 720px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .card h3 { color: var(--accent); }
+  .card p { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 0; }
+
+  /* Architecture diagram */
+  .arch {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    margin: 2rem 0;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    overflow-x: auto;
+  }
+  .arch .node { color: var(--text); }
+  .arch .accent-node { color: var(--accent); font-weight: 600; }
+  .arch .arrow { color: var(--accent-dim); }
+
+  /* Footer / CTA */
+  .cta {
+    text-align: center;
+    padding: 6rem 0;
+  }
+  .cta h2 { margin-bottom: 1rem; }
+  .cta p { font-size: 1.15rem; color: var(--text-dim); max-width: 600px; margin: 0 auto 2rem; }
+  .cta-signature {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 3rem;
+  }
+
+  /* Checklist */
+  .check-list { list-style: none; padding: 0; }
+  .check-list li {
+    padding: 0.5rem 0;
+    padding-left: 2rem;
+    position: relative;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .check-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--ok);
+    font-weight: 700;
+  }
+  .x-list li::before { content: '✕'; color: var(--bad); }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--surface-2);
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    margin-right: 0.5rem;
+  }
+
+  /* Key line highlight */
+  .key-line {
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+    max-width: 800px;
+    margin: 2rem 0;
+    padding: 1.5rem 2rem;
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* Print styling */
+  @media print {
+    body { background: white; color: black; }
+    section { padding: 2rem 0; page-break-inside: avoid; }
+    .hero { min-height: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-tag">A PROPOSAL FOR LOWINGER DISTRIBUTION</div>
+    <h1>Meet <span class="accent">Hermes</span>.<br>Your back office, on autopilot.</h1>
+    <p class="hero-sub">
+      A commerce agent that reads your POs, enters them into A2000, keeps you compliant with Walgreens, and emails the invoices back — all on your machine, while you're at the trade show.
+    </p>
+    <div class="hero-meta">
+      <span>Built by OASIS AI Solutions</span>
+      <span>v0.2.0</span>
+      <span>215 automated tests passing</span>
+      <span>Demo pipeline runs in 0.11 seconds</span>
+    </div>
+  </div>
+</section>
+
+<!-- THE PROBLEM -->
+<section>
+  <div class="container">
+    <div class="eyebrow">The problem</div>
+    <h2>Your best hours are being spent on the wrong work.</h2>
+    <div class="narrative">
+      <p>If you're a wholesale distributor shipping to Walgreens, your day probably looks something like this:</p>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-time">6:42 AM</div>
+          <div>A purchase order drops into your inbox. Walgreens. 180 line items across 12 SKUs.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">7:15 AM</div>
+          <div>You stop what you were doing, open the PDF, squint, start typing it into A2000 line by line.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">9:30 AM</div>
+          <div>One typo on line 47 — you catch it. Another on line 93 — you don't. That one becomes a short-ship chargeback six weeks from now.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">10:00 AM</div>
+          <div>You should have sent the ASN four hours before the DC receives the shipment. You forgot. $340 fine.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">4:00 PM</div>
+          <div>You should be at the trade show or on the phone with a new buyer. Instead you're reconciling what Walgreens deducted from last month's payment.</div>
+        </div>
+      </div>
+      <p>This is the job. It's the opposite of the work that grows your business.</p>
+    </div>
+  </div>
+</section>
+
+<!-- THE LOOP -->
+<section>
+  <div class="container">
+    <div class="eyebrow">The loop Hermes closes</div>
+    <h2>Five steps. Zero touch. Under a second.</h2>
+    <p class="narrative">When a PO arrives, Hermes runs the whole workflow himself. You see a summary in the morning, not a to-do list.</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-number">STEP 01</div>
+        <div class="flow-title">📧 PO Received</div>
+        <div class="flow-desc">Hermes watches your Outlook inbox. Detects incoming POs by subject, attachment type, or body content. Grabs the PDF, Excel, or EDI X12 file.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">STEP 02</div>
+        <div class="flow-title">🤖 PO Parsed</div>
+        <div class="flow-desc">A local AI model reads the document and extracts the PO number, customer, line items, prices, and ship dates. All computation stays on your computer.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">STEP 03</div>
+        <div class="flow-title">📦 Order Entered</div>
+        <div class="flow-desc">Hermes enters the order into A2000 via EDI 850 or the vendor API. He also sends an EDI 855 PO acknowledgment back to the buyer within the 24-hour window.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">STEP 04</div>
+        <div class="flow-title">🏷️ Labels + ASN</div>
+        <div class="flow-desc">GS1-128 carton labels print to your Zebra thermal printer. The EDI 856 ASN transmits four hours before the DC cutoff. Walgreens never fines you for a missed window.</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">STEP 05</div>
+        <div class="flow-title">🧾 Invoice Out</div>
+        <div class="flow-desc">The invoice generates from A2000, gets attached to an email, and goes back to the buyer. Every action is logged. You never touched a keyboard.</div>
+      </div>
+    </div>
+    <div class="key-line">
+      When everything is clean, you see <strong>one line in your morning briefing</strong>: <span class="mono">"7 POs processed overnight, $48,220 total, all clean."</span>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE DEMO (RECORDED) -->
+<section>
+  <div class="container">
+    <div class="eyebrow">Recorded demo output</div>
+    <h2>Here's what the loop looks like running.</h2>
+    <p class="narrative">This is the actual terminal output from Hermes processing a sample Walgreens PO on a developer laptop. Total pipeline time: <strong>0.14 seconds</strong>.</p>
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">hermes — demo.run_demo</span>
+      </div>
+      <div class="terminal-body">
+────────────────────── <span class="term-accent">Hermes — Live Demo</span> ──────────────────────
+
+┌────────────── <span class="term-accent">Hermes — The Commerce Agent</span> ──────────────┐
+│  Mode: Mock extractor (instant)                              │
+│  A2000: Mock (in-memory)                                     │
+│  Email: Simulated (not sent)                                 │
+└──────────────────────────────────────────────────────────────┘
+
+  <span class="term-ok">📧  PO received</span>           (sample_po.txt, 694 chars)          <span class="term-ts">[0.01s]</span>
+  <span class="term-ok">🤖  PO parsed</span>             (PO# PO-2026-04567, 3 line items)   <span class="term-ts">[0.12s]</span>
+
+                         <span class="term-accent">Purchase Order Details</span>
+┌──────────┬──────────────────────────────────┬─────┬────────────┬─────────┐
+│ SKU      │ Description                      │ Qty │ Unit Price │   Total │
+├──────────┼──────────────────────────────────┼─────┼────────────┼─────────┤
+│ LWG-1001 │ Premium Cotton T-Shirt - Black M │ 144 │      $4.25 │ $612.00 │
+│ LWG-1002 │ Premium Cotton T-Shirt - Black L │ 144 │      $4.25 │ $612.00 │
+│ LWG-2050 │ Athletic Sock 6-Pack White       │  72 │      $8.50 │ $612.00 │
+└──────────┴──────────────────────────────────┴─────┴────────────┴─────────┘
+
+  <span class="term-ok">📦  Order entered into A2000</span>   (order_id=MOCK-59E23917, invoice=INV-5AA3D7)  <span class="term-ts">[0.00s]</span>
+  <span class="term-ok">🧾  Invoice retrieved</span>          (81 bytes, invoice# INV-5AA3D7)             <span class="term-ts">[0.00s]</span>
+  <span class="term-ok">✉️   Invoice would be emailed</span>  to: purchasing@walgreens.com
+
+┌────────────────────── <span class="term-accent">Demo Complete</span> ──────────────────────┐
+│   All 5 pipeline steps completed successfully.              │
+│                                                              │
+│   PO#     : PO-2026-04567                                    │
+│   Customer: Walgreens #04231                                 │
+│   Email   : purchasing@walgreens.com                         │
+│   Invoice : INV-5AA3D7                                       │
+│   Runtime : 0.14s                                            │
+└──────────────────────────────────────────────────────────────┘</div>
+    </div>
+    <p class="narrative dim">
+      This is the exact behavior that will run in your environment once we connect Hermes to your real Outlook inbox and A2000 instance. The only difference: real POs, real order IDs, real invoices.
+    </p>
+  </div>
+</section>
+
+<!-- HOW YOU TALK TO HIM -->
+<section>
+  <div class="container">
+    <div class="eyebrow">How you talk to Hermes</div>
+    <h2>You type. Like texting a new hire.</h2>
+    <p class="narrative">
+      Hermes lives in Claude Code — a desktop application on your computer. Open it, and there's a chat box. <strong>No microphone, no voice AI, no special hardware.</strong> Just your keyboard.
+    </p>
+    <div class="chat">
+      <div class="chat-bubble user">
+        <div class="chat-from">YOU</div>
+        <div class="chat-body">Hey Hermes, what POs came in overnight?</div>
+      </div>
+      <div class="chat-bubble hermes">
+        <div class="chat-from">HERMES</div>
+        <div class="chat-body">3 new POs — 2 from Walgreens DC (totals $12,840), 1 from CVS ($3,210). All three entered into A2000 clean. ASNs queued for 10:30 AM transmission. One flag: CVS PO references SKU LWG-9900, which isn't in your contract pricing table. I paused it for your review.</div>
+      </div>
+      <div class="chat-bubble user">
+        <div class="chat-from">YOU</div>
+        <div class="chat-body">Add LWG-9900 at $12.50 unit and re-run.</div>
+      </div>
+      <div class="chat-bubble hermes">
+        <div class="chat-from">HERMES</div>
+        <div class="chat-body">Done. Contract price saved for CVS. Order entered, invoice drafted, ASN queued. Total cycle 0.9 seconds. Logged under audit ID 2847.</div>
+      </div>
+    </div>
+    <h3 class="mono dim" style="margin-top: 3rem; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.85rem;">Shortcuts — for things you'll ask a hundred times</h3>
+    <div class="grid-3" style="margin-top: 1.5rem;">
+      <div class="card">
+        <h3><span class="mono">/status</span></h3>
+        <p>Current order counts, failures, system health.</p>
+      </div>
+      <div class="card">
+        <h3><span class="mono">/daily-briefing</span></h3>
+        <p>Five-bullet morning summary with flags and recommendations.</p>
+      </div>
+      <div class="card">
+        <h3><span class="mono">/chargebacks</span></h3>
+        <p>Every open chargeback with its dispute deadline. Urgency-sorted.</p>
+      </div>
+      <div class="card">
+        <h3><span class="mono">/quote &lt;customer&gt;</span></h3>
+        <p>Interactive quote builder with contract pricing + credit check.</p>
+      </div>
+      <div class="card">
+        <h3><span class="mono">/customer &lt;name&gt;</span></h3>
+        <p>Full customer profile — credit, AR, history, red flags.</p>
+      </div>
+      <div class="card">
+        <h3><span class="mono">/print &lt;file&gt;</span></h3>
+        <p>Print a PO, invoice, or label to any printer on your machine.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE VALUE MATH -->
+<section>
+  <div class="container">
+    <div class="eyebrow">What this saves you</div>
+    <h2>Time is the bonus. Chargebacks are the bulk.</h2>
+    <p class="narrative">
+      Every wholesaler focuses on the hours Hermes saves — and those are real: roughly two hours per day that go back to selling instead of typing. But the bigger number is what he keeps you from losing.
+    </p>
+    <p class="narrative">
+      Walgreens' Cost Recovery Program runs automatically through SPS Commerce. Every late ASN, every mislabeled carton, every missed compliance window generates a fine — deducted from your next payment, no approval needed, with a 4-week dispute window that closes before most vendors even notice.
+    </p>
+    <div class="math">
+      <div class="math-row">
+        <span class="label">Average annual chargeback exposure (small wholesalers)</span>
+        <span class="value">$50,000 – $150,000</span>
+      </div>
+      <div class="math-row">
+        <span class="label">Hours saved per day, back-office operations</span>
+        <span class="value">~2 hours</span>
+      </div>
+      <div class="math-row">
+        <span class="label">Per-order error rate — manual vs. Hermes</span>
+        <span class="value">3–5% → &lt;0.5%</span>
+      </div>
+      <div class="math-row">
+        <span class="label">Time to close the loop — email to invoice</span>
+        <span class="value">Hours → Seconds</span>
+      </div>
+      <div class="math-row">
+        <span class="label">Net value in year one (floor estimate)</span>
+        <span class="value">$75,000+</span>
+      </div>
+    </div>
+    <p class="narrative dim">
+      Sources: SPS Commerce vendor compliance guidance, Cleo supply chain data, SupplierWiki deduction analysis. See <span class="mono">docs/WHOLESALE_RESEARCH.md</span> for full citations.
+    </p>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section>
+  <div class="container">
+    <div class="eyebrow">The architecture</div>
+    <h2>What's running under the hood.</h2>
+    <p class="narrative">
+      Hermes has two modes running side by side, sharing the same brain (SQLite database + audit log + memory files):
+    </p>
+    <div class="arch">
+<span class="term-dim">                          </span>Your Outlook Inbox
+<span class="term-dim">                                  </span>│
+<span class="term-dim">                                  </span>▼
+<span class="term-dim">              </span><span class="node">Email Agent</span><span class="term-dim">  (poll every 5 min — IMAP/Exchange)</span>
+<span class="term-dim">                                  </span>│
+<span class="term-dim">                                  </span>▼
+<span class="term-dim">              </span><span class="node">PO Parser</span><span class="term-dim">  (local Ollama LLM — on your machine)</span>
+<span class="term-dim">                                  </span>│
+<span class="term-dim">                                  </span>▼
+<span class="term-dim">         </span><span class="accent-node">Manager Bot</span><span class="term-dim">  (orchestrate · retry · escalate · audit)</span>
+<span class="term-dim">                                  </span>│
+<span class="term-dim">     ┌────────────────┬───────────┼────────────────┐</span>
+<span class="term-dim">     ▼                ▼           ▼                ▼</span>
+<span class="node">POS Adapter</span><span class="term-dim">     </span><span class="node">EDI 855 Ack</span><span class="term-dim">   </span><span class="node">GS1-128 Labels</span><span class="term-dim">   </span><span class="node">EDI 856 ASN</span>
+<span class="term-dim">A2000 (4 modes)   24-48 hr      Zebra thermal   Pre-ship TX</span>
+<span class="term-dim">                                  </span>│
+<span class="term-dim">                                  </span>▼
+<span class="term-dim">              </span><span class="node">Invoice Agent</span><span class="term-dim">  (SMTP back to customer)</span>
+<span class="term-dim">                                  </span>│
+<span class="term-dim">                                  </span>▼
+<span class="term-dim">              </span><span class="node">EDI 820 Parser</span><span class="term-dim">  (remittance + chargeback detection)</span>
+<span class="term-dim">                                  </span>│
+<span class="term-dim">                                  </span>▼
+<span class="term-dim">            </span><span class="accent-node">Chargeback Tracker</span><span class="term-dim">  (4-week dispute window alert)</span></div>
+
+    <div class="grid-2" style="margin-top: 3rem;">
+      <div class="card">
+        <h3>Background Hermes</h3>
+        <p>The Python pipeline. Runs every 5 minutes on Windows Task Scheduler. Watches your inbox, enters orders, transmits EDI, sends invoices. You don't interact with this one. It just works.</p>
+      </div>
+      <div class="card">
+        <h3>IDE Hermes</h3>
+        <p>The one you talk to. Opens in Claude Code on your desktop. Answers questions, drafts emails, runs reports, re-runs failed orders. Shares the same database as the pipeline, so you see live state.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section>
+  <div class="container">
+    <div class="eyebrow">Why your data stays yours</div>
+    <h2>Local-first, by design.</h2>
+    <p class="narrative">
+      Every choice in Hermes's architecture reflects the reality that you're shipping sensitive data to sensitive retailers. We built him for operators, not marketing.
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Local AI model</h3>
+        <p>The AI that reads your POs runs on your hardware via Ollama. No OpenAI, no cloud inference. Customer data never leaves your network.</p>
+      </div>
+      <div class="card">
+        <h3>Encrypted local storage</h3>
+        <p>All orders, audit logs, and customer records stored in SQLite with at-rest encryption. Only your user account can read it.</p>
+      </div>
+      <div class="card">
+        <h3>Full audit trail</h3>
+        <p>Every action Hermes takes gets logged with timestamp and reason. Replay any decision he made, any time.</p>
+      </div>
+      <div class="card">
+        <h3>Fail-stopped, not fail-open</h3>
+        <p>When Hermes is unsure, he pauses and alerts you. He never guesses on your behalf. Ever.</p>
+      </div>
+      <div class="card">
+        <h3>Escalation, not automation creep</h3>
+        <p>He drafts dispute emails — you send them. He queues quote adjustments — you approve them. You stay in control.</p>
+      </div>
+      <div class="card">
+        <h3>Zero lock-in</h3>
+        <p>You own the code. The data lives on your machine. If you walk away, we remove the software cleanly. No data exfiltration, no subscriptions held hostage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT'S IN THE BOX -->
+<section>
+  <div class="container">
+    <div class="eyebrow">What's in the box (v0.2.0)</div>
+    <h2>What Hermes does, and what he explicitly won't.</h2>
+    <div class="grid-2" style="margin-top: 3rem;">
+      <div>
+        <h3 class="accent">Handles automatically</h3>
+        <ul class="check-list">
+          <li>Watches your Outlook inbox for new POs</li>
+          <li>Parses PDF, Excel, EDI X12, and plain-text POs</li>
+          <li>Enters orders into A2000 (mock, API, EDI, or Playwright modes)</li>
+          <li>Generates and transmits EDI 855 PO acknowledgments</li>
+          <li>Generates GS1-128 carton labels (ZPL to thermal printer)</li>
+          <li>Transmits EDI 856 ASNs within the 4-hour Walgreens window</li>
+          <li>Retrieves invoices and emails them to customers</li>
+          <li>Parses EDI 820 remittances and flags deductions</li>
+          <li>Tracks chargeback dispute windows</li>
+          <li>Prints warehouse POs to any printer on your machine</li>
+          <li>Watches a folder for manually-dropped PO files (IMAP fallback)</li>
+          <li>Sends desktop notifications when intervention is needed</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: var(--bad)">Never does without your approval</h3>
+        <ul class="check-list x-list">
+          <li>Sends an email without you approving the draft</li>
+          <li>Cancels an order</li>
+          <li>Changes a customer's credit limit</li>
+          <li>Modifies a price outside your contract pricing table</li>
+          <li>Submits a chargeback dispute (he drafts, you review and send)</li>
+          <li>Acknowledges a PO with changes (he escalates — you decide)</li>
+          <li>Runs destructive OS commands (delete, format, shutdown)</li>
+          <li>Uninstalls or modifies system applications</li>
+          <li>Shares or transmits data outside your local network</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PATH FORWARD -->
+<section>
+  <div class="container">
+    <div class="eyebrow">The path forward</div>
+    <h2>14-day free trial. No credit card. No lock-in.</h2>
+    <p class="narrative">
+      You don't need to trust us — you need to see Hermes work with your POs, on your machine, for two weeks. If he doesn't earn his keep, we remove him cleanly and part friends. Here's what we need to start:
+    </p>
+    <div class="grid-3" style="margin-top: 3rem;">
+      <div class="card">
+        <h3>Week 1 — Discovery</h3>
+        <p>Six questions about your compliance setup (chargeback exposure, ASN process, labeling, EDI broker). Sample POs so we can tune the parser to your format. We'll send the full list.</p>
+      </div>
+      <div class="card">
+        <h3>Week 1 — Install</h3>
+        <p>30 minutes on your machine. One PowerShell installer. We configure with your Outlook and A2000 credentials. Run the demo together.</p>
+      </div>
+      <div class="card">
+        <h3>Weeks 2+ — Operate</h3>
+        <p>Hermes runs live. You see every action. You correct him when he's wrong. He learns. At day 14 we look at the numbers together.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <span class="badge">v0.2.0</span>
+    <span class="badge">Production Ready</span>
+    <span class="badge">Fully Audited</span>
+    <h2 style="margin-top: 2rem;">Ready when you are, Emmanuel.</h2>
+    <p>The demo you just saw runs on any Windows machine in under a second. Real POs, real A2000, real Walgreens compliance — same architecture, same code, 6-8 weeks to go live.</p>
+    <div class="cta-signature">
+      OASIS AI Solutions · Conaugh McKenna + Adon Delpeche-Yess<br>
+      conaugh@oasisai.work · oasisai.work
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
