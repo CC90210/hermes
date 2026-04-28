@@ -9,19 +9,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-A2000Mode = Literal["mock", "api", "edi", "playwright"]
+A2000Mode = Literal["mock", "api", "edi", "playwright", "desktop"]
 
-_REQUIRED: list[str] = [
+# EMAIL_USER / EMAIL_PASSWORD are required at runtime when EmailAgent connects,
+# but NOT at import time. Importing this module with a missing .env (e.g. from a
+# fresh checkout, a CLI script, or a unit test) must not crash — otherwise every
+# tool crashes with a confusing import error instead of the actionable message
+# from the agent that actually needs the credential.
+_REQUIRED_AT_RUNTIME: list[str] = [
     "EMAIL_USER",
     "EMAIL_PASSWORD",
 ]
 
-_MISSING = [v for v in _REQUIRED if not os.getenv(v)]
-if _MISSING:
-    raise EnvironmentError(
-        f"Hermes: missing required environment variables: {', '.join(_MISSING)}\n"
-        "Copy .env.template to .env and fill in all required values."
-    )
+
+def require_email_credentials() -> tuple[str, str]:
+    """Return (user, password) or raise EnvironmentError with a clear message.
+
+    Call this from EmailAgent.connect — not at import time.
+    """
+    missing = [v for v in _REQUIRED_AT_RUNTIME if not os.getenv(v)]
+    if missing:
+        raise EnvironmentError(
+            f"Hermes: missing required environment variables: {', '.join(missing)}\n"
+            "Copy .env.template to .env and fill in all required values."
+        )
+    return os.environ["EMAIL_USER"], os.environ["EMAIL_PASSWORD"]
 
 
 @dataclass(frozen=True)
@@ -31,9 +43,10 @@ class Config:
     ollama_model: str = field(default_factory=lambda: os.environ.get("OLLAMA_MODEL", "qwen2.5:32b"))
 
     # Email — IMAP (inbound PO polling)
+    # Returns "" when not set; require_email_credentials() enforces presence at runtime.
     email_host: str = field(default_factory=lambda: os.environ.get("EMAIL_HOST", "outlook.office365.com"))
-    email_user: str = field(default_factory=lambda: os.environ["EMAIL_USER"])
-    email_password: str = field(default_factory=lambda: os.environ["EMAIL_PASSWORD"])
+    email_user: str = field(default_factory=lambda: os.environ.get("EMAIL_USER", ""))
+    email_password: str = field(default_factory=lambda: os.environ.get("EMAIL_PASSWORD", ""))
     email_imap_port: int = field(default_factory=lambda: int(os.environ.get("EMAIL_IMAP_PORT", "993")))
 
     # Email — SMTP (outbound invoices / confirmations)
@@ -101,7 +114,7 @@ def require_escalation_email() -> str:
 
 
 def _validated_a2000_mode(value: str) -> A2000Mode:
-    allowed: tuple[A2000Mode, ...] = ("mock", "api", "edi", "playwright")
+    allowed: tuple[A2000Mode, ...] = ("mock", "api", "edi", "playwright", "desktop")
     if value not in allowed:
         raise ValueError(
             f"A2000_MODE must be one of {allowed}, got '{value}'"
@@ -118,6 +131,12 @@ def _validated_a2000_mode(value: str) -> A2000Mode:
             if not os.getenv(key):
                 raise EnvironmentError(
                     f"A2000_MODE=edi requires {key} to be set in the environment."
+                )
+    elif value == "desktop":
+        for key in ("A2000_EXECUTABLE_PATH", "A2000_WINDOW_TITLE"):
+            if not os.getenv(key):
+                raise EnvironmentError(
+                    f"A2000_MODE=desktop requires {key} to be set in the environment."
                 )
     return value  # type: ignore[return-value]
 

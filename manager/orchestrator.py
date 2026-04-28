@@ -66,6 +66,9 @@ def _build_a2000_client(mode: str) -> Any:
     if mode == "playwright":
         from adapters.a2000_playwright import A2000PlaywrightClient
         return A2000PlaywrightClient()
+    if mode == "desktop":
+        from adapters.a2000_desktop import DesktopA2000Client
+        return DesktopA2000Client()
     raise ValueError(f"Unknown A2000_MODE: {mode!r}")
 
 

@@ -23,6 +23,20 @@ import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
+# Force UTF-8 stdout/stderr on Windows so emoji and box-drawing characters
+# render instead of crashing the legacy cp1252 console. This must run before
+# any print or Rich import.
+# ---------------------------------------------------------------------------
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+
+# ---------------------------------------------------------------------------
 # Rich terminal output — graceful fallback if not installed
 # ---------------------------------------------------------------------------
 

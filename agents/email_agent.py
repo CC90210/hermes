@@ -61,6 +61,11 @@ class EmailAgent:
     # ------------------------------------------------------------------
 
     async def connect(self) -> None:
+        # Hard-fail with a clear message if EMAIL_USER / EMAIL_PASSWORD are missing.
+        # This is the *runtime* check — module import does not require credentials.
+        from manager.config import require_email_credentials
+        require_email_credentials()
+
         loop = asyncio.get_running_loop()
         self._imap = await loop.run_in_executor(None, self._sync_connect)
         logger.info("IMAP connected as %s @ %s", config.email_user, config.email_host)
