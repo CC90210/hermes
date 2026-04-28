@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hermes — The Commerce Agent for Lowinger Distribution</title>
+<meta name="description" content="A back-office commerce agent that reads your POs, enters them into A2000, keeps you compliant with Walgreens, and emails the invoices back. 30-day free trial. Built by OASIS AI Solutions.">
+<meta property="og:title" content="Hermes — Your Back Office on Autopilot">
+<meta property="og:description" content="A commerce agent for Lowinger Distribution. Reads POs, enters orders, sends invoices, prevents Walgreens chargebacks. 30 days free.">
+<meta property="og:type" content="website">
 <style>
   :root {
     --bg: #0a0a0b;
@@ -158,9 +162,6 @@
     color: var(--text-dim);
     line-height: 1.5;
   }
-  .flow-arrow {
-    display: none;
-  }
 
   /* Terminal mock */
   .terminal {
@@ -229,12 +230,7 @@
   }
   .chat-bubble.user .chat-from { color: var(--text-dim); }
   .chat-bubble.hermes .chat-from { color: var(--accent); }
-  .chat-body {
-    color: var(--text);
-  }
-  .chat-bubble.user .chat-body {
-    padding-left: 0;
-  }
+  .chat-body { color: var(--text); }
   .chat-bubble.hermes .chat-body {
     padding-left: 1rem;
     border-left: 2px solid var(--accent);
@@ -254,6 +250,7 @@
     justify-content: space-between;
     padding: 0.5rem 0;
     border-bottom: 1px solid var(--border);
+    gap: 1rem;
   }
   .math-row:last-child {
     border-bottom: none;
@@ -265,7 +262,7 @@
     color: var(--accent);
   }
   .math-row .label { color: var(--text-dim); }
-  .math-row .value { color: var(--text); font-weight: 500; }
+  .math-row .value { color: var(--text); font-weight: 500; text-align: right; }
 
   /* Grid */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
@@ -281,6 +278,64 @@
   }
   .card h3 { color: var(--accent); }
   .card p { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 0; }
+
+  /* Path cards (Easy Start vs. Local-Only) */
+  .paths {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+  @media (max-width: 720px) { .paths { grid-template-columns: 1fr; } }
+  .path {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    position: relative;
+  }
+  .path.recommended {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  }
+  .path-tag {
+    position: absolute;
+    top: -10px;
+    left: 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 0.3rem 0.75rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .path h3 { color: var(--text); font-size: 1.4rem; margin-bottom: 0.25rem; }
+  .path .path-sub {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.25rem;
+  }
+  .path .path-list { list-style: none; padding: 0; margin: 1rem 0 0; }
+  .path .path-list li {
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    position: relative;
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .path .path-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
 
   /* Architecture diagram */
   .arch {
@@ -300,10 +355,7 @@
   .arch .arrow { color: var(--accent-dim); }
 
   /* Footer / CTA */
-  .cta {
-    text-align: center;
-    padding: 6rem 0;
-  }
+  .cta { text-align: center; padding: 6rem 0; }
   .cta h2 { margin-bottom: 1rem; }
   .cta p { font-size: 1.15rem; color: var(--text-dim); max-width: 600px; margin: 0 auto 2rem; }
   .cta-signature {
@@ -360,6 +412,58 @@
     border-radius: 0 8px 8px 0;
   }
 
+  /* Pull-quote / metaphor block */
+  .metaphor {
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    margin: 2rem 0;
+    font-size: 1.2rem;
+    line-height: 1.65;
+    color: var(--text);
+    max-width: 820px;
+  }
+  .metaphor .from {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  /* Storyboard (demo plan) */
+  .storyboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  .story-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .story-step .num {
+    font-family: var(--mono);
+    color: var(--accent);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+  .story-step .title {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .story-step .desc {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
   /* Print styling */
   @media print {
     body { background: white; color: black; }
@@ -376,13 +480,13 @@
     <div class="hero-tag">A PROPOSAL FOR LOWINGER DISTRIBUTION</div>
     <h1>Meet <span class="accent">Hermes</span>.<br>Your back office, on autopilot.</h1>
     <p class="hero-sub">
-      A commerce agent that reads your POs, enters them into A2000, keeps you compliant with Walgreens, and emails the invoices back — all on your machine, while you're at the trade show.
+      A commerce agent that reads your POs, enters them into A2000, keeps you compliant with Walgreens, and emails the invoices back — while you're at the trade show.
     </p>
     <div class="hero-meta">
       <span>Built by OASIS AI Solutions</span>
       <span>v0.2.0</span>
-      <span>215 automated tests passing</span>
-      <span>Demo pipeline runs in 0.11 seconds</span>
+      <span>30-day free trial</span>
+      <span>No credit card · No lock-in</span>
     </div>
   </div>
 </section>
@@ -431,12 +535,12 @@
       <div class="flow-step">
         <div class="flow-number">STEP 01</div>
         <div class="flow-title">📧 PO Received</div>
-        <div class="flow-desc">Hermes watches your Outlook inbox. Detects incoming POs by subject, attachment type, or body content. Grabs the PDF, Excel, or EDI X12 file.</div>
+        <div class="flow-desc">Hermes watches your inbox. Detects incoming POs by subject, attachment type, or body content. Grabs the PDF, Excel, or EDI X12 file.</div>
       </div>
       <div class="flow-step">
         <div class="flow-number">STEP 02</div>
         <div class="flow-title">🤖 PO Parsed</div>
-        <div class="flow-desc">A local AI model reads the document and extracts the PO number, customer, line items, prices, and ship dates. All computation stays on your computer.</div>
+        <div class="flow-desc">Hermes reads the document and extracts the PO number, customer, line items, prices, and ship dates. Writes them into a structured order record.</div>
       </div>
       <div class="flow-step">
         <div class="flow-number">STEP 03</div>
@@ -460,56 +564,43 @@
   </div>
 </section>
 
-<!-- LIVE DEMO (RECORDED) -->
+<!-- THE DEMO YOU'LL SEE -->
 <section>
   <div class="container">
-    <div class="eyebrow">Recorded demo output</div>
-    <h2>Here's what the loop looks like running.</h2>
-    <p class="narrative">This is the actual terminal output from Hermes processing a sample Walgreens PO on a developer laptop. Total pipeline time: <strong>0.14 seconds</strong>.</p>
-    <div class="terminal">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">hermes — demo.run_demo</span>
+    <div class="eyebrow">What you'll see in the demo</div>
+    <h2>A live proof-of-concept on real email, in front of you.</h2>
+    <p class="narrative">
+      We're not going to show you a slide deck of features. We're going to walk you through the loop running on a live Gmail account — Adon's personal inbox — and pipe the result into a Google Sheet you can refresh in real time. The same loop, on your A2000, is the next step.
+    </p>
+    <div class="storyboard">
+      <div class="story-step">
+        <div class="num">DEMO 01</div>
+        <div class="title">Connect a real inbox</div>
+        <div class="desc">Adon's Gmail, authenticated through Google Console. No mock data. No staging. The actual mail server.</div>
       </div>
-      <div class="terminal-body">
-────────────────────── <span class="term-accent">Hermes — Live Demo</span> ──────────────────────
-
-┌────────────── <span class="term-accent">Hermes — The Commerce Agent</span> ──────────────┐
-│  Mode: Mock extractor (instant)                              │
-│  A2000: Mock (in-memory)                                     │
-│  Email: Simulated (not sent)                                 │
-└──────────────────────────────────────────────────────────────┘
-
-  <span class="term-ok">📧  PO received</span>           (sample_po.txt, 694 chars)          <span class="term-ts">[0.01s]</span>
-  <span class="term-ok">🤖  PO parsed</span>             (PO# PO-2026-04567, 3 line items)   <span class="term-ts">[0.12s]</span>
-
-                         <span class="term-accent">Purchase Order Details</span>
-┌──────────┬──────────────────────────────────┬─────┬────────────┬─────────┐
-│ SKU      │ Description                      │ Qty │ Unit Price │   Total │
-├──────────┼──────────────────────────────────┼─────┼────────────┼─────────┤
-│ LWG-1001 │ Premium Cotton T-Shirt - Black M │ 144 │      $4.25 │ $612.00 │
-│ LWG-1002 │ Premium Cotton T-Shirt - Black L │ 144 │      $4.25 │ $612.00 │
-│ LWG-2050 │ Athletic Sock 6-Pack White       │  72 │      $8.50 │ $612.00 │
-└──────────┴──────────────────────────────────┴─────┴────────────┴─────────┘
-
-  <span class="term-ok">📦  Order entered into A2000</span>   (order_id=MOCK-59E23917, invoice=INV-5AA3D7)  <span class="term-ts">[0.00s]</span>
-  <span class="term-ok">🧾  Invoice retrieved</span>          (81 bytes, invoice# INV-5AA3D7)             <span class="term-ts">[0.00s]</span>
-  <span class="term-ok">✉️   Invoice would be emailed</span>  to: purchasing@walgreens.com
-
-┌────────────────────── <span class="term-accent">Demo Complete</span> ──────────────────────┐
-│   All 5 pipeline steps completed successfully.              │
-│                                                              │
-│   PO#     : PO-2026-04567                                    │
-│   Customer: Walgreens #04231                                 │
-│   Email   : purchasing@walgreens.com                         │
-│   Invoice : INV-5AA3D7                                       │
-│   Runtime : 0.14s                                            │
-└──────────────────────────────────────────────────────────────┘</div>
+      <div class="story-step">
+        <div class="num">DEMO 02</div>
+        <div class="title">Drop a PO in</div>
+        <div class="desc">A sample purchase order arrives — same format as a Walgreens or CVS PDF. Hermes detects it within seconds.</div>
+      </div>
+      <div class="story-step">
+        <div class="num">DEMO 03</div>
+        <div class="title">Watch the parse</div>
+        <div class="desc">PO number, customer, line items, quantities, prices, ship date — extracted to structured fields in under a second.</div>
+      </div>
+      <div class="story-step">
+        <div class="num">DEMO 04</div>
+        <div class="title">Land in a Google Sheet</div>
+        <div class="desc">Each parsed PO becomes a row. Open the sheet, see the data, sort it, filter it. This is the dispatch board your team would work from.</div>
+      </div>
+      <div class="story-step">
+        <div class="num">DEMO 05</div>
+        <div class="title">The same path → A2000</div>
+        <div class="desc">In your environment, that same row writes straight into A2000 instead of a sheet. Same parse, same speed, same audit trail.</div>
+      </div>
     </div>
     <p class="narrative dim">
-      This is the exact behavior that will run in your environment once we connect Hermes to your real Outlook inbox and A2000 instance. The only difference: real POs, real order IDs, real invoices.
+      The Google Sheet stand-in is on purpose: it lets you watch the data flow without us needing to touch your A2000 yet. Once we have your credentials and the trial is live, we swap the sheet endpoint for the A2000 adapter. Nothing about the parse, the timing, or the audit log changes.
     </p>
   </div>
 </section>
@@ -520,7 +611,7 @@
     <div class="eyebrow">How you talk to Hermes</div>
     <h2>You type. Like texting a new hire.</h2>
     <p class="narrative">
-      Hermes lives in Claude Code — a desktop application on your computer. Open it, and there's a chat box. <strong>No microphone, no voice AI, no special hardware.</strong> Just your keyboard.
+      Hermes lives in a chat window on your computer. <strong>No microphone, no voice AI, no special hardware.</strong> Just your keyboard. The fastest way to get started uses the ChatGPT subscription you already pay for — we plug Hermes into your existing setup, no new tools to learn.
     </p>
     <div class="chat">
       <div class="chat-bubble user">
@@ -570,7 +661,55 @@
   </div>
 </section>
 
-<!-- THE VALUE MATH -->
+<!-- TRUST / SECURITY -->
+<section>
+  <div class="container">
+    <div class="eyebrow">Why your data stays yours</div>
+    <h2>Think of Hermes as a digital filing cabinet.</h2>
+
+    <div class="metaphor">
+      <div class="from">THE PLAIN-ENGLISH VERSION</div>
+      Your business data lives in a vault on your computer, locked with military-grade encryption. The vault is backed up automatically every six hours to a separate, encrypted location, so nothing is ever lost. <strong>You're the only one with the key.</strong> When Hermes needs to think — to read a PO, to draft an email — he asks an AI provider through a legally binding agreement that says: <em>process this, then forget it. Don't store it. Don't train on it. Don't share it.</em>
+    </div>
+
+    <p class="narrative">
+      The cloud isn't the risk. The risk is unaccountable storage. We use providers that are <strong>SOC 2 Type II certified</strong>, sign <strong>Data Processing Agreements</strong> with legal teeth, and have a financial reason to honor them — if they leaked your data, they'd be sued out of existence. That's a stronger safety net than most local IT setups.
+    </p>
+
+    <div class="grid-2" style="margin-top: 2rem;">
+      <div class="card">
+        <h3>🔐 Two-key encryption</h3>
+        <p>Your data and your credentials are protected by a two-layer encryption scheme. Even if someone intercepted the transfer, they'd see scrambled gibberish — and even if they got the file off your machine, they'd still need a second key to read it.</p>
+      </div>
+      <div class="card">
+        <h3>🗝️ Only you hold the keys</h3>
+        <p>Encryption keys live on your machine, in a file only your Windows account can read. We don't have a copy. No master key, no backdoor, no recovery handshake that bypasses you.</p>
+      </div>
+      <div class="card">
+        <h3>💾 Encrypted backups every 6 hours</h3>
+        <p>Automated, encrypted snapshots of your order history and audit log, written to a separate provider so a single failure can't take you down. You can roll back any change, any day.</p>
+      </div>
+      <div class="card">
+        <h3>📜 No-storage, no-training contracts</h3>
+        <p>The AI providers we use (Anthropic, OpenAI) are bound by Data Processing Agreements: <strong>they cannot store your data, train on it, or share it.</strong> If they did, they'd be in breach and exposed to lawsuits in the millions.</p>
+      </div>
+      <div class="card">
+        <h3>📋 Full audit trail</h3>
+        <p>Every action Hermes takes — every PO read, every order entered, every email drafted — is logged with timestamp and reason. You can replay any decision he made, any time.</p>
+      </div>
+      <div class="card">
+        <h3>🛑 Fail-stopped, not fail-open</h3>
+        <p>When Hermes is unsure, he pauses and alerts you. He never guesses on a real order. The pipeline stops before a bad action happens, not after.</p>
+      </div>
+    </div>
+
+    <p class="narrative dim" style="margin-top: 2rem;">
+      If you ever want to take the cloud out of the equation entirely — run the AI on a machine in your own office, fully offline — that's a simple upgrade we can do later. It's not required for the trial, and it's not required for the production system to be safe.
+    </p>
+  </div>
+</section>
+
+<!-- VALUE MATH -->
 <section>
   <div class="container">
     <div class="eyebrow">What this saves you</div>
@@ -604,8 +743,47 @@
       </div>
     </div>
     <p class="narrative dim">
-      Sources: SPS Commerce vendor compliance guidance, Cleo supply chain data, SupplierWiki deduction analysis. See <span class="mono">docs/WHOLESALE_RESEARCH.md</span> for full citations.
+      Sources: SPS Commerce vendor compliance guidance, Cleo supply chain data, SupplierWiki deduction analysis. Full citations in <span class="mono">docs/WHOLESALE_RESEARCH.md</span>.
     </p>
+  </div>
+</section>
+
+<!-- TWO PATHS TO START -->
+<section>
+  <div class="container">
+    <div class="eyebrow">Two ways to start</div>
+    <h2>Lowest barrier first. Upgrades stay open.</h2>
+    <p class="narrative">
+      We picked the path that gets you running this week with no hardware purchase and no IT lift. If you ever want more isolation later, the upgrade is a phone call.
+    </p>
+    <div class="paths">
+      <div class="path recommended">
+        <div class="path-tag">Recommended for the trial</div>
+        <h3>Easy Start</h3>
+        <div class="path-sub">Cloud-backed · Ready in 30 minutes</div>
+        <p class="dim">Use the ChatGPT subscription you already pay for. Hermes runs on your existing Windows machine, talks to enterprise AI providers under no-storage contracts, and stores everything in an encrypted vault on your hard drive.</p>
+        <ul class="path-list">
+          <li>No new hardware</li>
+          <li>No IT department needed</li>
+          <li>Setup in one 30-minute call</li>
+          <li>Live in front of you, day one of the trial</li>
+          <li>Same encryption, same audit log, same agent</li>
+        </ul>
+      </div>
+      <div class="path">
+        <div class="path-tag" style="background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border);">Optional upgrade</div>
+        <h3>Local-Only</h3>
+        <div class="path-sub">Air-gapped AI · Hardware required</div>
+        <p class="dim">For the highest-paranoia setups, the AI itself can run on a machine in your office with no internet exposure. Requires a workstation upgrade. Not necessary for the trial — most wholesalers stay on Easy Start.</p>
+        <ul class="path-list">
+          <li>AI runs offline on your hardware</li>
+          <li>Zero outbound network calls during processing</li>
+          <li>Workstation: ~$2,500 one-time</li>
+          <li>Switch over after trial if you want it</li>
+          <li>Same Hermes, same workflow, no relearning</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -615,16 +793,16 @@
     <div class="eyebrow">The architecture</div>
     <h2>What's running under the hood.</h2>
     <p class="narrative">
-      Hermes has two modes running side by side, sharing the same brain (SQLite database + audit log + memory files):
+      Hermes has two modes running side by side, sharing the same brain (encrypted SQLite database + audit log + memory files):
     </p>
     <div class="arch">
-<span class="term-dim">                          </span>Your Outlook Inbox
+<span class="term-dim">                          </span>Your Inbox (Outlook / Gmail)
 <span class="term-dim">                                  </span>│
 <span class="term-dim">                                  </span>▼
-<span class="term-dim">              </span><span class="node">Email Agent</span><span class="term-dim">  (poll every 5 min — IMAP/Exchange)</span>
+<span class="term-dim">              </span><span class="node">Email Agent</span><span class="term-dim">  (poll every 5 min)</span>
 <span class="term-dim">                                  </span>│
 <span class="term-dim">                                  </span>▼
-<span class="term-dim">              </span><span class="node">PO Parser</span><span class="term-dim">  (local Ollama LLM — on your machine)</span>
+<span class="term-dim">              </span><span class="node">PO Parser</span><span class="term-dim">  (AI provider, no-storage DPA)</span>
 <span class="term-dim">                                  </span>│
 <span class="term-dim">                                  </span>▼
 <span class="term-dim">         </span><span class="accent-node">Manager Bot</span><span class="term-dim">  (orchestrate · retry · escalate · audit)</span>
@@ -646,48 +824,11 @@
     <div class="grid-2" style="margin-top: 3rem;">
       <div class="card">
         <h3>Background Hermes</h3>
-        <p>The Python pipeline. Runs every 5 minutes on Windows Task Scheduler. Watches your inbox, enters orders, transmits EDI, sends invoices. You don't interact with this one. It just works.</p>
+        <p>The pipeline. Runs every 5 minutes. Watches your inbox, enters orders, transmits EDI, sends invoices. You don't interact with this one. It just works.</p>
       </div>
       <div class="card">
         <h3>IDE Hermes</h3>
-        <p>The one you talk to. Opens in Claude Code on your desktop. Answers questions, drafts emails, runs reports, re-runs failed orders. Shares the same database as the pipeline, so you see live state.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TRUST -->
-<section>
-  <div class="container">
-    <div class="eyebrow">Why your data stays yours</div>
-    <h2>Local-first, by design.</h2>
-    <p class="narrative">
-      Every choice in Hermes's architecture reflects the reality that you're shipping sensitive data to sensitive retailers. We built him for operators, not marketing.
-    </p>
-    <div class="grid-2">
-      <div class="card">
-        <h3>Local AI model</h3>
-        <p>The AI that reads your POs runs on your hardware via Ollama. No OpenAI, no cloud inference. Customer data never leaves your network.</p>
-      </div>
-      <div class="card">
-        <h3>Encrypted local storage</h3>
-        <p>All orders, audit logs, and customer records stored in SQLite with at-rest encryption. Only your user account can read it.</p>
-      </div>
-      <div class="card">
-        <h3>Full audit trail</h3>
-        <p>Every action Hermes takes gets logged with timestamp and reason. Replay any decision he made, any time.</p>
-      </div>
-      <div class="card">
-        <h3>Fail-stopped, not fail-open</h3>
-        <p>When Hermes is unsure, he pauses and alerts you. He never guesses on your behalf. Ever.</p>
-      </div>
-      <div class="card">
-        <h3>Escalation, not automation creep</h3>
-        <p>He drafts dispute emails — you send them. He queues quote adjustments — you approve them. You stay in control.</p>
-      </div>
-      <div class="card">
-        <h3>Zero lock-in</h3>
-        <p>You own the code. The data lives on your machine. If you walk away, we remove the software cleanly. No data exfiltration, no subscriptions held hostage.</p>
+        <p>The one you talk to. Opens in a chat window on your desktop. Answers questions, drafts emails, runs reports, re-runs failed orders. Shares the same database as the pipeline, so you see live state.</p>
       </div>
     </div>
   </div>
@@ -702,7 +843,7 @@
       <div>
         <h3 class="accent">Handles automatically</h3>
         <ul class="check-list">
-          <li>Watches your Outlook inbox for new POs</li>
+          <li>Watches your inbox for new POs (Outlook or Gmail)</li>
           <li>Parses PDF, Excel, EDI X12, and plain-text POs</li>
           <li>Enters orders into A2000 (mock, API, EDI, or Playwright modes)</li>
           <li>Generates and transmits EDI 855 PO acknowledgments</li>
@@ -712,8 +853,8 @@
           <li>Parses EDI 820 remittances and flags deductions</li>
           <li>Tracks chargeback dispute windows</li>
           <li>Prints warehouse POs to any printer on your machine</li>
-          <li>Watches a folder for manually-dropped PO files (IMAP fallback)</li>
-          <li>Sends desktop notifications when intervention is needed</li>
+          <li>Sends notifications when intervention is needed</li>
+          <li>Encrypted backups every 6 hours to a second location</li>
         </ul>
       </div>
       <div>
@@ -727,35 +868,38 @@
           <li>Acknowledges a PO with changes (he escalates — you decide)</li>
           <li>Runs destructive OS commands (delete, format, shutdown)</li>
           <li>Uninstalls or modifies system applications</li>
-          <li>Shares or transmits data outside your local network</li>
+          <li>Shares your data with third parties beyond the no-storage AI providers</li>
         </ul>
       </div>
     </div>
   </div>
 </section>
 
-<!-- PATH FORWARD -->
+<!-- THE PATH FORWARD -->
 <section>
   <div class="container">
     <div class="eyebrow">The path forward</div>
-    <h2>14-day free trial. No credit card. No lock-in.</h2>
+    <h2>30-day free trial. No credit card. No price talk until it's working.</h2>
     <p class="narrative">
-      You don't need to trust us — you need to see Hermes work with your POs, on your machine, for two weeks. If he doesn't earn his keep, we remove him cleanly and part friends. Here's what we need to start:
+      We don't want to discuss pricing until you've used Hermes for thirty days. By then either he's earning his keep — and the price is easy to look at — or he isn't, and we shake hands and go. Here's what the next month looks like:
     </p>
     <div class="grid-3" style="margin-top: 3rem;">
       <div class="card">
-        <h3>Week 1 — Discovery</h3>
-        <p>Six questions about your compliance setup (chargeback exposure, ASN process, labeling, EDI broker). Sample POs so we can tune the parser to your format. We'll send the full list.</p>
+        <h3>Week 1 — Setup</h3>
+        <p>30 minutes on a call. We connect Hermes to your inbox and your A2000 sandbox using the credentials you already have. Run the same demo you saw, on your own data. No new hardware, no new subscriptions.</p>
       </div>
       <div class="card">
-        <h3>Week 1 — Install</h3>
-        <p>30 minutes on your machine. One PowerShell installer. We configure with your Outlook and A2000 credentials. Run the demo together.</p>
+        <h3>Weeks 1–2 — Tune</h3>
+        <p>Hermes learns your specific PO formats, your customer list, your contract pricing, your label setup. We sit on calls with you while it happens. Every action is reviewed before it ships.</p>
       </div>
       <div class="card">
-        <h3>Weeks 2+ — Operate</h3>
-        <p>Hermes runs live. You see every action. You correct him when he's wrong. He learns. At day 14 we look at the numbers together.</p>
+        <h3>Weeks 3–4 — Run</h3>
+        <p>Hermes is operating live on your real orders. You watch the daily briefings. You correct him when he's wrong. He gets sharper. At day 30 we look at the numbers together and decide what's next.</p>
       </div>
     </div>
+    <p class="narrative dim" style="margin-top: 2rem;">
+      No discussion of monthly cost until we hit day 30. The trial gives you something concrete to value — not a quote based on guesses about what you might use. After 30 days, the price reflects the work he's actually doing.
+    </p>
   </div>
 </section>
 
@@ -763,10 +907,10 @@
 <section class="cta">
   <div class="container">
     <span class="badge">v0.2.0</span>
-    <span class="badge">Production Ready</span>
-    <span class="badge">Fully Audited</span>
+    <span class="badge">30-Day Free Trial</span>
+    <span class="badge">No Lock-In</span>
     <h2 style="margin-top: 2rem;">Ready when you are, Emmanuel.</h2>
-    <p>The demo you just saw runs on any Windows machine in under a second. Real POs, real A2000, real Walgreens compliance — same architecture, same code, 6-8 weeks to go live.</p>
+    <p>The demo you'll see runs on a real Gmail inbox, parses a real PO, and lands the data in a real Google Sheet — in front of you. The same architecture runs on your A2000 the moment we have your credentials.</p>
     <div class="cta-signature">
       OASIS AI Solutions · Conaugh McKenna + Adon Delpeche-Yess<br>
       conaugh@oasisai.work · oasisai.work

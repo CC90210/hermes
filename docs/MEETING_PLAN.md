@@ -9,7 +9,7 @@
 
 ## Meeting Objective
 
-Get Emmanuel to sign the 14-day free trial agreement before he leaves the room. Show him Hermes is real, alive, and running on a laptop he can touch — not a pitch deck, not a promise, a working teammate.
+Get Emmanuel to commit to the **30-day free trial** before he leaves the room. Show him Hermes is real, alive, and running on a laptop he can touch — not a pitch deck, not a promise, a working teammate. **No price talk this meeting.** The 30 days is the proof; price is a conversation we have on day 30 with a month of audit logs in hand.
 
 ---
 
@@ -17,7 +17,7 @@ Get Emmanuel to sign the 14-day free trial agreement before he leaves the room. 
 
 ### Night Before
 - [ ] Laptop charged, charger packed, second charger in bag
-- [ ] Ollama running locally, model pre-loaded (no cold-start lag)
+- [ ] AI provider connection (Anthropic / OpenAI) tested — warm cache, no first-call delay
 - [ ] Hermes v0.2.0 pulled from `CC90210/hermes`, mock mode verified (215/215 tests green)
 - [ ] `docs/DEMO.html` open in Chrome full-screen, pre-loaded — **this is the primary visual now that we can't demo against his real A2000**
 - [ ] `demo.bat` (mock mode) tested end-to-end — confirm <1 second runtime (for the live terminal run that backs up DEMO.html)
@@ -50,7 +50,7 @@ Get Emmanuel to sign the 14-day free trial agreement before he leaves the room. 
 | 8 min | Visual demo (DEMO.html + recorded terminal) | Tell the story he can't see live |
 | 3 min | Architecture in 90 seconds | Plain English, no jargon |
 | 5 min | Shopify case study | The closest match to his business |
-| 10 min | Trial terms + pricing | Put the number on the table |
+| 10 min | Trial terms (no price talk) | 30-day free trial. Price conversation deferred to day 30 |
 | 5 min | IDE Hermes reveal | The "he's on your team" moment |
 | 10 min | Discovery questions | Lead with Section 0 (compliance), then technical |
 | 5 min | Close | Commit, group chat, go-live date |
@@ -72,7 +72,7 @@ Sit down. Open the laptop. That's it. He'll feel the pace immediately.
 Before the demo, spend 60 seconds replaying his own words. This earns the next 40 minutes.
 
 **Script:**
-> "Last time you said three things. One — you need to see this work, because it sounds like sci-fi. Two — you invest in people, not code. Three — someone with capital will copy this in a month, so speed matters. We heard all of it. The next 45 minutes is us proving we listened."
+> "Last time you said three things. One — you need to see this work, because it sounds like sci-fi. Two — you invest in people, not code. Three — someone with capital will copy this in a month, so speed matters. We heard all of it. The next 45 minutes is us proving we listened — and instead of pricing this thing today, we're giving you the agent free for thirty days so the value speaks before the number does."
 
 Then: **The Chargeback Math.** Don't go to the demo yet.
 
@@ -150,7 +150,7 @@ Two columns — what Hermes handles vs. what he'll never do without asking.
 > "Right column is the control you keep. He drafts, you approve. He escalates, you decide. We built him this way because you told us 'put on my plate, not take off it' — this is how we honor that."
 
 **Step 9 — The money line.**
-> "The loop you saw — that's the work your team does a hundred times a week by hand. Hermes does it while you're at a trade show. Fourteen days free, no credit card, we remove it clean if it doesn't earn its keep. Ready to start?"
+> "The loop you saw — that's the work your team does a hundred times a week by hand. Hermes does it while you're at a trade show. **Thirty days free, no credit card, no price conversation until day thirty.** We remove it clean if it doesn't earn its keep. Ready to start?"
 
 ### If The Live Terminal Run Hiccups
 Don't panic. DEMO.html is the primary. Just say:
@@ -164,15 +164,17 @@ The HTML page carries the entire demo on its own.
 
 Whiteboard. Three boxes. No jargon.
 
-1. **Inbox** → "He watches your Outlook. Sees a PO come in."
-2. **Brain** → "He reads it. Local AI model on your machine. Never phones home."
+1. **Inbox** → "He watches your Outlook or Gmail. Sees a PO come in."
+2. **Brain** → "He reads it through an enterprise AI provider — Anthropic or OpenAI — under a contract that says the provider can't store, train on, or share your data. Process it and forget it."
 3. **A2000 + Compliance Out** → "He enters it. Sends the ASN. Prints the labels. Pulls the invoice. Sends the confirmation."
 
-That's it. Under the boxes write: **"Encrypted. Audited. Local. Yours."**
+That's it. Under the boxes write: **"Encrypted vault. Audited. Backed up every six hours. Yours."**
 
 Add a fourth box on the right side: **"Dispute Tracker"** — "He watches for Walgreens fines, tracks the 4-week window, and drafts the dispute before the money is gone."
 
-If he asks how the brain works, one sentence: "It's an open-source language model running on your hardware — same family as ChatGPT, but private and offline."
+If he asks how the brain works, one sentence: "It's a top-tier AI provider — same companies the Fortune 500 uses — bound by a Data Processing Agreement that legally prohibits storing or training on your data. SOC 2 Type II certified. If they leaked your data, they'd be sued out of existence."
+
+If he pushes on cloud-vs-local: "The cloud isn't the risk — unaccountable storage is. We use providers under contracts with legal teeth. If you ever want the AI itself running offline on a machine in your office, that's an upgrade we can do later — about $2,500 in hardware, and not required for the trial."
 
 ---
 
@@ -188,36 +190,37 @@ Add Bennett as the track-record proof:
 
 ---
 
-## Trial Terms + Pricing (10 min)
+## Trial Terms — No Price Talk This Meeting (10 min)
 
-Put the page on the table. Do not apologize for the number. Do the math for him.
+Put the trial agreement on the table. **Do not quote a monthly number.** The whole point of the 30-day free trial is that price is grounded in real audit data, not estimates. Talking price now undercuts the whole offer.
 
 ### What We Propose
 
-- **14-day free trial.** Starts the day Hermes is installed on his machine.
-- **What's included:** Full email → PO → A2000 → invoice loop. Audit logs. Escalation emails. Our hands on it the whole time.
-- **What we need from him:** A2000 test environment access, 10 sample POs, 2 check-in calls (day 3, day 10).
-- **Success criteria:** 80%+ of POs processed end-to-end without human intervention. Zero wrong-customer errors. Every mistake logged and reviewed.
+- **30-day free trial.** Starts the day Hermes is installed on his machine.
+- **What's included:** Full email → PO → A2000 → invoice loop. Audit logs. Escalation emails. Our hands on it the whole time. Encrypted backups every six hours.
+- **What we need from him:** A2000 access (API or login), inbox consent (Outlook or Gmail), 3–5 sample POs, two 20-minute check-in calls (week 2, week 4).
+- **Success criteria:** 95%+ of POs processed end-to-end without human intervention. Zero wrong-customer errors. Every mistake logged and reviewed. Zero missed Walgreens ASN windows attributable to the agent.
 
-### Post-Trial Pricing (recommended anchor)
+### Why 30 Days, Not 14
 
-**$1,500/month base retainer** + **$0.50 per PO processed** after the first 1,000/month.
+> "Two weeks is enough to install software. It's not enough for an agent to learn your business. Hermes needs roughly four weeks to see the full range of POs you receive, calibrate against your contract pricing and customer list, and build a meaningful audit history. We're confident enough in the agent to give it the time it actually needs to prove itself. And we're confident enough that we don't need to lock you into a monthly bill before you see it work."
 
-At his likely volume (~400 POs/week = ~1,600/month):
-- Base: $1,500
-- Overage: 600 POs × $0.50 = $300
-- **Total: ~$1,800/month**
+### When He Asks "What's It Going to Cost?"
+
+He will ask. Don't dodge — name the strategy.
+
+> "Here's the move on pricing, Emmanuel. We're not quoting you today. The whole point of the thirty days is that we sit down on day thirty with a month of audit logs in front of us — actual order volume, actual hours saved, actual chargebacks prevented — and the price reflects that. Quoting now would be a guess on both sides. Quoting then is just math."
+
+If he pushes for a range: "We work in the range of a typical mid-back-office hire — well under what you'd pay a full-time AP person — but the exact number depends on what your operation actually uses. We'll know in thirty days."
 
 ### The Real ROI Math — Lead With Chargebacks, Not Time
 
-> "Here is how the math actually works. The $50,000 to $150,000 a year in Walgreens fines — that's the floor argument. That's the number before we count a single hour of labor saved. If Hermes prevents even one missed ASN per week — one shipment that doesn't generate a fine — at 1% to 5% of invoice value, you're looking at hundreds of dollars recovered per event.
+> "Here's how the math will actually work when we get to day thirty. The $50,000 to $150,000 a year in Walgreens fines — that's the floor argument. That's the number before we count a single hour of labor saved. If Hermes prevents even one missed ASN per week — one shipment that doesn't generate a fine — at 1% to 5% of invoice value, you're looking at hundreds of dollars recovered per event.
 >
-> Time savings is the bonus on top. If you process 20 orders a day at 15 minutes each, that's 5 hours of daily manual work gone permanently. One AP hire is $4,000 to $5,000 a month loaded. Hermes runs for $1,800, 24/7, and never generates a late ASN.
->
-> The trial is free. You don't pay us a dollar until you've seen him work for two weeks."
+> Time savings is the bonus on top. If you process 20 orders a day at 15 minutes each, that's 5 hours of daily manual work gone permanently. The trial is free. You don't pay us a dollar until thirty days have passed and we have real numbers to look at together."
 
 ### Exit Clause
-30-day cancellation, no lock-in, he owns his data, we export everything on request. Say this unprompted — it kills the biggest objection before he raises it.
+No lock-in. He owns his data. We export everything on request. Removal is one script. Say this unprompted — it kills the biggest objection before he raises it.
 
 ---
 
@@ -255,7 +258,7 @@ Do not leave without these answers. Write them down on paper in front of him —
 6. **Outlook environment** — Microsoft 365 business? On-prem Exchange? Shared inbox or individual?
 7. **Sample POs** — can we get 10 real (redacted) POs for trial calibration?
 8. **Daily PO volume** — peak and average? How many unique customers?
-9. **Success metric** — what does "this worked" look like to him in 14 days? Hours saved? POs processed? Error rate?
+9. **Success metric** — what does "this worked" look like to him in 30 days? Hours saved? POs processed? Error rate? Chargebacks avoided?
 10. **Timeline** — when can we install? Who on his side is our point of contact for the trial?
 
 Bonus if time:
@@ -275,16 +278,16 @@ He will ask. Don't rehearse this so stiff it sounds canned. The bones:
 ## The 6 Objections He'll Raise
 
 ### 1. "This is sci-fi — how do I know it works?"
-> "That's exactly why the trial is 14 days and free. You don't pay a dollar until you've watched him process real POs on your real A2000 with your real team looking over his shoulder. Every action is in the audit log. If you don't believe it worked, you show us the log and we fix it or you walk."
+> "That's exactly why the trial is thirty days and free. You don't pay a dollar until you've watched him process real POs on your real A2000 with your real team looking over his shoulder. Every action is in the audit log. If you don't believe it worked, you show us the log and we fix it or you walk."
 
 ### 2. "How do I know you won't disappear in 6 months?"
-> "Three answers. One — OASIS AI is our full-time thing, not a side hustle. Two — the model runs on your machine, so if we vanished, Hermes keeps working. You own the code deployment, we export it on request. Three — our Bennett community is 158 members with 100% retention because we don't ghost. We're a long-term partnership operation."
+> "Three answers. One — OASIS AI is our full-time thing, not a side hustle. Two — the agent runs on your machine and your data is in your encrypted vault, so if we vanished, you still have the code, the data, and the audit log. You own everything. Three — our Bennett community is 158 members with 100% retention because we don't ghost. We're a long-term partnership operation."
 
 ### 3. "What if Hermes makes a mistake on a real order?"
-> "Escalation is built in. If Hermes isn't 95%+ confident on any step, he stops and emails a human. Every action is logged — you can rewind anything. And during the trial, he runs in supervised mode — nothing hits A2000 without a human confirming the first 50 orders. By day 14, you've seen every edge case."
+> "Escalation is built in. If Hermes isn't 95%+ confident on any step, he stops and emails a human. Every action is logged — you can rewind anything. And during the trial, he runs in supervised mode — nothing hits A2000 without a human confirming the first 50 orders. By day 30, you've seen every edge case."
 
 ### 4. "What does this cost?"
-> "Free for 14 days. After that, $1,500/month base plus $0.50 per PO over 1,000 monthly. At your volume that's roughly $1,800/month. One AP hire is $4,000+. Hermes is less than half, 24/7, never quits. If he prevents just a few hundred dollars in Walgreens fines a week, he pays for himself before the invoice lands."
+> "We're not quoting today. That's the deal — thirty days free, then we sit down with a month of real audit data and the price reflects what you actually use. We work in the range of a part-time back-office hire, but the exact number depends on your operation. The reason we're not naming it now is the same reason you wouldn't quote a customer for a full year of orders without knowing what they're going to ship — we both need real numbers first."
 
 ### 5. "I don't want to change how my team works."
 > "You won't. Hermes slots into your stack — he reads your Outlook, he writes to your A2000, he sends from your email. Your team keeps doing what they do. The only thing that changes is that 70% of the copy-paste stops happening. They spend their time on the 30% that needs judgment."
@@ -297,7 +300,7 @@ He will ask. Don't rehearse this so stiff it sounds canned. The bones:
 ## Post-Meeting Follow-Up (within 24 hours)
 
 - [ ] **Summary email** from Conaugh — recap the agenda, the demo, the trial terms, next steps. Tight. 150 words max.
-- [ ] **DocuSign trial agreement** sent same day. Don't wait for him to ask.
+- [ ] **DocuSign 30-day trial agreement** sent same day. Don't wait for him to ask.
 - [ ] **WhatsApp group chat** created — Conaugh + Adon + Emmanuel. Title: "Hermes × Lowinger." First message from Adon: "In."
 - [ ] **Calendar invite** for kickoff call, 3–5 business days out, 30 min. Don't ask him when — propose two times and let him pick.
 - [ ] **Internal note** — log the chargeback exposure number, A2000/Outlook answers, EDI VAN status in `project_emmanuel_lowinger.md`, update `memory/SESSION_LOG.md`.
@@ -312,7 +315,7 @@ Drop these naturally, don't force them. If they land once, that's enough.
 1. **"Hermes is your teammate, not your tool."**
 2. **"He runs 24/7. He never sleeps, never forgets, never asks for overtime."**
 3. **"Every action is logged. You can audit anything he's ever done."**
-4. **"Your data stays on your machine. We don't phone home."**
+4. **"Your data lives in an encrypted vault on your machine. The AI provider is bound by a contract that says no copies allowed. Backups every six hours."**
 5. **"When you're at a trade show, Hermes is still shipping orders for you."**
 6. **"The ASN going out four hours before the truck — that's the one that keeps Walgreens from fining you automatically. That's what Hermes does while you sleep."**
 
