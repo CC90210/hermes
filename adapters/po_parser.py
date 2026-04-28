@@ -321,7 +321,10 @@ async def parse_po(content: bytes, filename: str, content_type: str) -> POData:
         # Plain text, email body, CSV, etc.
         raw_text = content.decode("utf-8", errors="replace")
 
-    extracted = await _call_ollama(raw_text)
+    # Routes through the cloud-fallback chain (auto by default — Ollama then
+    # Anthropic then OpenAI). HERMES_PO_PARSER controls the route.
+    from adapters.cloud_parser import extract_with_fallback
+    extracted = await extract_with_fallback(_EXTRACTION_PROMPT, raw_text, _call_ollama)
     return _build_po_data(extracted, raw_text)
 
 

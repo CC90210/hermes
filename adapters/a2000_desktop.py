@@ -248,23 +248,59 @@ class DesktopA2000Client(A2000ClientBase):
         order_id = f"DESK-{uuid.uuid4().hex[:8].upper()}"
         loop = asyncio.get_running_loop()
 
-        # Before screenshot
-        before = await loop.run_in_executor(None, self._screenshot, "before", order_id)
-        logger.info("DesktopA2000Client: before-screenshot %s", before)
-
-        # Run the recipe
-        success, message = await loop.run_in_executor(None, self._run_recipe, po, order_id)
-
-        # After screenshot (always, even on failure — we want the failure state captured)
-        after = await loop.run_in_executor(None, self._screenshot, "after", order_id)
-        logger.info("DesktopA2000Client: after-screenshot %s", after)
-
-        return OrderResult(
-            order_id=order_id,
-            success=success,
-            message=f"{message} (screenshots: {before.name if before else 'none'}, {after.name if after else 'none'})",
-            invoice_number=None,  # Desktop adapter does not retrieve invoices — use a follow-up scrape
+        # Acquire an exclusive lock so cron Hermes and IDE Hermes can't both
+        # drive the GUI at once. Without this, two pipelines fighting for
+        # focus would silently corrupt the order.
+        lock_path = Path(
+            os.environ.get("A2000_LOCK_FILE", "./storage/a2000_desktop.lock")
         )
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_acquired = False
+        try:
+            try:
+                # O_EXCL on create — fails if another process holds the lock.
+                fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(fd, f"{os.getpid()} {datetime.now(timezone.utc).isoformat()}\n".encode())
+                os.close(fd)
+                lock_acquired = True
+            except FileExistsError:
+                # Another desktop-mode pipeline is already driving A2000.
+                # Refuse rather than risk overlapping clicks.
+                return OrderResult(
+                    order_id=order_id,
+                    success=False,
+                    message=(
+                        f"A2000 desktop lock held by another process "
+                        f"(see {lock_path}). Refusing to run to prevent "
+                        f"focus-race corruption. Delete the lock file if you "
+                        f"are certain no other Hermes is running."
+                    ),
+                    invoice_number=None,
+                )
+
+            # Before screenshot
+            before = await loop.run_in_executor(None, self._screenshot, "before", order_id)
+            logger.info("DesktopA2000Client: before-screenshot %s", before)
+
+            # Run the recipe
+            success, message = await loop.run_in_executor(None, self._run_recipe, po, order_id)
+
+            # After screenshot (always, even on failure — we want the failure state captured)
+            after = await loop.run_in_executor(None, self._screenshot, "after", order_id)
+            logger.info("DesktopA2000Client: after-screenshot %s", after)
+
+            return OrderResult(
+                order_id=order_id,
+                success=success,
+                message=f"{message} (screenshots: {before.name if before else 'none'}, {after.name if after else 'none'})",
+                invoice_number=None,  # Desktop adapter does not retrieve invoices — use a follow-up scrape
+            )
+        finally:
+            if lock_acquired:
+                try:
+                    lock_path.unlink()
+                except OSError:
+                    logger.warning("Failed to remove A2000 lock %s", lock_path)
 
     async def get_order(self, order_id: str) -> dict:  # type: ignore[type-arg]
         raise NotImplementedError(
