@@ -4,6 +4,13 @@
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = $PSScriptRoot
+$RuntimeDirs = @(
+    "storage",
+    "storage\a2000_screenshots",
+    "logs",
+    "drafts",
+    "tmp"
+)
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -53,6 +60,15 @@ try {
 # STEP 3 — Create virtualenv and install requirements
 # -----------------------------------------------------------------------
 Write-Host "[3/9] Creating virtual environment..." -ForegroundColor Yellow
+Write-Host "  Preparing runtime folders..." -ForegroundColor Yellow
+foreach ($dir in $RuntimeDirs) {
+    $path = Join-Path $RepoRoot $dir
+    if (-not (Test-Path $path)) {
+        New-Item -ItemType Directory -Force -Path $path | Out-Null
+    }
+}
+Write-Host "  Runtime folders ready." -ForegroundColor Green
+
 $venvPath = Join-Path $RepoRoot ".venv"
 if (-not (Test-Path $venvPath)) {
     & $pythonCmd -m venv $venvPath
@@ -125,7 +141,7 @@ try {
 # -----------------------------------------------------------------------
 Write-Host "[7/9] Setting up .env file..." -ForegroundColor Yellow
 $envFile = Join-Path $RepoRoot ".env"
-$templateFile = Join-Path $RepoRoot "clients\lowinger\.env.client.template"
+$templateFile = Join-Path $RepoRoot ".env.template"
 
 if (-not (Test-Path $envFile)) {
     if (Test-Path $templateFile) {
@@ -133,7 +149,7 @@ if (-not (Test-Path $envFile)) {
         Write-Host "  .env created from template." -ForegroundColor Green
     } else {
         # Create a minimal template if client template not found
-        @"
+        $defaultEnv = @"
 # Hermes environment — Lowinger Distribution
 # Fill in all values before starting the pipeline
 
@@ -144,14 +160,14 @@ DB_PATH=storage/lowinger.db
 EMAIL_IMAP_HOST=outlook.office365.com
 EMAIL_SMTP_HOST=smtp.office365.com
 EMAIL_SMTP_PORT=587
-EMAIL_USERNAME=your_email@lowinderdistribution.com
+EMAIL_USER=your_email@lowinderdistribution.com
 EMAIL_PASSWORD=your_app_password_here
 EMAIL_FROM=your_email@lowinderdistribution.com
 
 # Escalation recipient
 ESCALATION_EMAIL=emmanuel@lowinderdistribution.com
 
-# A2000 mode: mock | edi | api | playwright
+# A2000 mode: mock | edi | api | playwright | desktop
 A2000_MODE=mock
 EDI_OUTPUT_DIR=C:\A2000\EDI\incoming
 
@@ -161,7 +177,8 @@ OLLAMA_MODEL=qwen2.5:32b
 
 # Health endpoint port
 HEALTH_PORT=8765
-"@ | Out-File -FilePath $envFile -Encoding UTF8
+"@
+        $defaultEnv | Out-File -FilePath $envFile -Encoding UTF8
         Write-Host "  .env created with defaults." -ForegroundColor Green
     }
     Write-Host "  Opening .env in Notepad — fill in your credentials, then save and close." -ForegroundColor Cyan

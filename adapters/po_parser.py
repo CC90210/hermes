@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 import httpx
-from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+from runtime.env_loader import load_env
+
+load_env()
 
 OLLAMA_HOST: str = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL: str = os.environ.get("OLLAMA_MODEL", "qwen2.5:32b")
@@ -321,8 +322,8 @@ async def parse_po(content: bytes, filename: str, content_type: str) -> POData:
         # Plain text, email body, CSV, etc.
         raw_text = content.decode("utf-8", errors="replace")
 
-    # Routes through the cloud-fallback chain (auto by default — Ollama then
-    # Anthropic then OpenAI). HERMES_PO_PARSER controls the route.
+    # Routes through the configured parser backend. Default is local Ollama;
+    # HERMES_PO_PARSER=auto enables cloud fallback when keys are configured.
     from adapters.cloud_parser import extract_with_fallback
     extracted = await extract_with_fallback(_EXTRACTION_PROMPT, raw_text, _call_ollama)
     return _build_po_data(extracted, raw_text)

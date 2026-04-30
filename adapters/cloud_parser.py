@@ -19,7 +19,7 @@ Routing:
   HERMES_PO_PARSER=ollama-local    → Ollama only, no fallback
   HERMES_PO_PARSER=cloud-anthropic → Anthropic Claude only
   HERMES_PO_PARSER=cloud-openai    → OpenAI GPT only
-  HERMES_PO_PARSER=auto (default)  → try Ollama; on failure, try Anthropic; then OpenAI
+  HERMES_PO_PARSER=auto            → try Ollama; on failure, try Anthropic; then OpenAI
 
 Required environment for cloud paths:
 
@@ -47,10 +47,10 @@ _VALID_ROUTES = ("auto", "ollama-local", "cloud-anthropic", "cloud-openai")
 
 
 def _route() -> str:
-    val = (os.environ.get(_ROUTER_ENV) or "auto").strip().lower()
+    val = (os.environ.get(_ROUTER_ENV) or "ollama-local").strip().lower()
     if val not in _VALID_ROUTES:
-        logger.warning("Invalid %s=%r, falling back to 'auto'", _ROUTER_ENV, val)
-        return "auto"
+        logger.warning("Invalid %s=%r, falling back to 'ollama-local'", _ROUTER_ENV, val)
+        return "ollama-local"
     return val
 
 

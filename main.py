@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import sys
 
-from dotenv import load_dotenv
+from runtime.env_loader import load_env
 
-load_dotenv()
+load_env()
 
 from manager.config import config  # noqa: E402
 

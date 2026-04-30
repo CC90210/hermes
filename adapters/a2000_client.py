@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
-from dotenv import load_dotenv
 
 from adapters.po_parser import POData
+from runtime.env_loader import load_env
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+load_env()
 
 logger = logging.getLogger(__name__)
 

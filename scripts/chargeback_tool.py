@@ -19,12 +19,12 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-load_dotenv(_REPO_ROOT / ".env")
+from runtime.env_loader import load_env  # noqa: E402
+
+load_env(_REPO_ROOT)
 
 DRAFTS_DIR = _REPO_ROOT / "drafts"
 DRAFTS_DIR.mkdir(exist_ok=True)

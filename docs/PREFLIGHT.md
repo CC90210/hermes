@@ -106,8 +106,9 @@ path is aspirational until we have a vendor commitment.
       to a configurable folder. We need that folder path so the invoice agent
       can pick them up — the desktop adapter does *not* try to scrape the
       invoice from the GUI (too fragile).
-- [ ] **Add a `scripts/a2000_record.py`** that records a recipe interactively.
-      *Not yet written.* Workaround for the trial: hand-edit the JSON.
+- [x] **Recipe recorder exists.** Use `python scripts/a2000_record.py` to
+      record, then `python scripts/a2000_record.py --validate` before arming
+      desktop mode. The recipe format is documented in `docs/A2000_RECIPE.md`.
 
 ### What can go wrong, and what we do about it
 
@@ -120,7 +121,7 @@ path is aspirational until we have a vendor commitment.
 | Wrong customer selected | Low (with verify steps) | Wrong-customer order — financial damage | `verify` recipe steps must confirm customer name appears before submit |
 | Screenshots fill the disk | Low | Disk fills, pipeline fails | Add a retention policy in `scripts/state_sync.py` (TODO) |
 | `HERMES_DESKTOP_AUTOMATION_ARMED` accidentally left set in dev | Medium | Real clicks during testing | The flag is per-environment, not committed. Recipe path defaults to a non-existent file in dev |
-| Two Hermes instances clash | Low | Both try to drive the GUI | Cron Hermes vs IDE Hermes already coordinate via `orders.status`. Add a desktop-mode lock file before any GUI write (TODO) |
+| Two Hermes instances clash | Low | Both try to drive the GUI | Cron Hermes vs IDE Hermes coordinate via `orders.status`, and desktop mode takes `A2000_LOCK_FILE` before any GUI write |
 
 ---
 

@@ -17,13 +17,13 @@ import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 # Ensure repo root is on the path so storage imports work
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-load_dotenv(_REPO_ROOT / ".env")
+from runtime.env_loader import load_env  # noqa: E402
+
+load_env(_REPO_ROOT)
 
 import aiosqlite  # noqa: E402 — after path setup
 

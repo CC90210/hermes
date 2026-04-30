@@ -18,15 +18,24 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-load_dotenv(_REPO_ROOT / ".env")
+from runtime.env_loader import load_env  # noqa: E402
+
+load_env(_REPO_ROOT)
 
 DRAFTS_DIR = _REPO_ROOT / "drafts"
 DRAFTS_DIR.mkdir(exist_ok=True)
+
+
+def _email_user() -> str | None:
+    """Return the configured mailbox user.
+
+    `EMAIL_USER` is the canonical Hermes name. `EMAIL_USERNAME` remains
+    supported so older local `.env` files keep working.
+    """
+    return os.getenv("EMAIL_USER") or os.getenv("EMAIL_USERNAME")
 
 
 def list_drafts() -> list[dict]:
@@ -58,14 +67,14 @@ def send_draft(draft_id: str) -> dict:
 
     smtp_host = os.getenv("EMAIL_SMTP_HOST")
     smtp_port = int(os.getenv("EMAIL_SMTP_PORT", "587"))
-    email_user = os.getenv("EMAIL_USERNAME")
+    email_user = _email_user()
     email_pass = os.getenv("EMAIL_PASSWORD")
     from_addr = os.getenv("EMAIL_FROM", email_user or "")
 
     if not all([smtp_host, email_user, email_pass]):
         return {
             "success": False,
-            "error": "Missing EMAIL_SMTP_HOST, EMAIL_USERNAME, or EMAIL_PASSWORD in .env",
+            "error": "Missing EMAIL_SMTP_HOST, EMAIL_USER, or EMAIL_PASSWORD in .env",
         }
 
     import smtplib
@@ -101,11 +110,11 @@ def send_draft(draft_id: str) -> dict:
 def list_inbox() -> list[dict]:
     """List unread emails from configured inbox using IMAP."""
     imap_host = os.getenv("EMAIL_IMAP_HOST")
-    email_user = os.getenv("EMAIL_USERNAME")
+    email_user = _email_user()
     email_pass = os.getenv("EMAIL_PASSWORD")
 
     if not all([imap_host, email_user, email_pass]):
-        return [{"error": "Missing EMAIL_IMAP_HOST, EMAIL_USERNAME, or EMAIL_PASSWORD in .env"}]
+        return [{"error": "Missing EMAIL_IMAP_HOST, EMAIL_USER, or EMAIL_PASSWORD in .env"}]
 
     try:
         import imapclient  # type: ignore[import-untyped]

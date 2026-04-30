@@ -142,6 +142,14 @@ cd hermes
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
+One command on macOS / Linux:
+
+```bash
+git clone https://github.com/CC90210/hermes.git
+cd hermes
+bash install.sh
+```
+
 The installer checks Python, creates a virtual environment, installs dependencies, pulls the local AI model, initializes the database, and runs the demo to verify everything works. When it's done, you open the folder in Claude Code and start talking to Hermes.
 
 Prefer the long way? See `docs/SETUP_GUIDE.md` for the plain-English operator manual.
@@ -150,7 +158,7 @@ Prefer the long way? See `docs/SETUP_GUIDE.md` for the plain-English operator ma
 
 ## Configuration
 
-All credentials and settings live in **one file**: `.env` (never committed to git). Copy `.env.template` to `.env`, open it in Notepad, fill in the real values. That's the whole configuration story.
+Credentials and settings live locally and are never committed to git. Hermes reads `.env.agents` first when the OASIS setup wizard creates it, then `.env` for any remaining deployment settings. Direct installs copy `.env.template` to `.env`; open it in a text editor and fill in the real values.
 
 The variables are organized in four groups:
 
@@ -176,7 +184,7 @@ Every variable is documented inline in `.env.template`. Nothing is hidden. Nothi
 
 Hermes was built for operators who ship sensitive data to sensitive retailers. Every design choice reflects that:
 
-- **Local-first AI.** The model that reads your POs runs on your hardware via [Ollama](https://ollama.com). No OpenAI, no Anthropic, no cloud inference sees customer data.
+- **Local-first AI by default.** The model that reads your POs runs on your hardware via [Ollama](https://ollama.com). Cloud parsing is optional and should only be enabled with explicit client approval, the right data terms, and `HERMES_PO_PARSER` set intentionally.
 - **Encrypted SQLite.** All order data, audit logs, and customer info stored locally with at-rest encryption.
 - **Credentials isolated.** Never in code, never in logs, never in version control — only in `.env`, which is gitignored by default.
 - **Full audit trail.** Every single action Hermes takes gets logged with timestamp and reason. You can replay any decision he made, any time.

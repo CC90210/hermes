@@ -5,11 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
-
 from adapters.a2000_client import A2000ClientBase
+from runtime.env_loader import load_env
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+load_env()
 
 COMPANY_NAME: str = os.environ.get("COMPANY_NAME", "Lowinger Distribution")  # client business name — do not rename
 

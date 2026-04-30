@@ -15,7 +15,6 @@ Usage:
     python scripts/a2000_record.py                       # interactive
     python scripts/a2000_record.py --output ./recipe.json
     python scripts/a2000_record.py --validate            # validate existing
-    python scripts/a2000_record.py --dry-run             # replay without arming
 
 Recipe format (JSON):
 

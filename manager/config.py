@@ -5,9 +5,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from dotenv import load_dotenv
+from runtime.env_loader import load_env
 
-load_dotenv()
+load_env()
 
 A2000Mode = Literal["mock", "api", "edi", "playwright", "desktop"]
 

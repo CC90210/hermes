@@ -19,9 +19,9 @@ import logging
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
+from runtime.env_loader import load_env
 
-load_dotenv()
+load_env()
 
 from manager.config import config  # noqa: E402
 

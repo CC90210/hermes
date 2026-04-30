@@ -21,9 +21,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
+from runtime.env_loader import load_env
 
-load_dotenv()
+load_env()
 
 from agents.email_agent import EmailAgent  # noqa: E402
 from adapters.po_parser import POParser  # noqa: E402
