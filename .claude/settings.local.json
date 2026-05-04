@@ -19,6 +19,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null && echo \"[HERMES SESSION] Local-first. Customer data never leaves this machine. Read brain/HERMES.md and brain/STATE.md before responding to Emmanuel.\"'"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
