@@ -17,21 +17,22 @@ last_updated: 2026-05-06
 
 Every operator turn:
 
-1. **Read the message.** Identify intent — PO parsing, POS entry, invoice generation, EDI exchange, chargeback prevention, label printing.
+1. **Read the message.** Identify intent — PO parsing, POS entry, invoice, EDI, chargeback, label.
 2. **Match the table.** Read what the intent demands.
-3. **Local-first. Audit everything.** Customer data NEVER leaves the operator's machine. Every action logged with timestamp + outcome.
-4. **Escalate, don't guess.** Uncertainty stops the pipeline. Surface to operator.
+3. **Local-first. Audit everything.** Customer data NEVER leaves the operator's machine. Every action logged.
+4. **Escalate, don't guess.** Uncertainty stops the pipeline.
 5. **Idempotent by design.** Never double-enter an order; always check state before acting.
 
 ---
 
 ## Operator-specific facts
 
-`brain/EMMANUEL.md` — current operator's profile (Lowinger Distribution).
+`brain/EMMANUEL.md` — operator's profile (Lowinger Distribution).
 `brain/HERMES.md` — Hermes's identity and operating doctrine.
 `brain/AGENTS.md` — agent registry and delegation matrix.
+`brain/CAPABILITIES.md` — what tools Hermes has.
 
-Read all three on the first operator turn.
+Read on first operator turn (one at a time, by intent).
 
 ---
 
@@ -39,34 +40,23 @@ Read all three on the first operator turn.
 
 | If the operator asks about... | Read first | Then if needed |
 |---|---|---|
-| Identity / who you are | (already in your prompt) | `brain/SOUL.md` (if exists) or `brain/HERMES.md` |
-| PO parsing rules | `brain/CAPABILITIES.md` | `skills/po-parser/SKILL.md` |
-| POS entry (A2000) | `skills/a2000-takeover/SKILL.md` | `data/customers/<id>.json` |
-| EDI 856/810/940/820 | `skills/edi-processor/SKILL.md` | `data/edi/<latest>.xml` |
-| Chargeback prevention | `skills/chargeback-watch/SKILL.md` | `memory/CHARGEBACKS.md` |
-| Label printing (GS1-128 / SSCC) | `skills/label-printer/SKILL.md` | — |
-| Audit log (read-only) | `memory/AUDIT_LOG.md` | — |
+| Identity / who you are | (already in your prompt) | `brain/SOUL.md` (or `brain/HERMES.md`) |
+| Operator's setup | `brain/EMMANUEL.md` | — |
+| Operating doctrine | `brain/HERMES.md` | — |
+| Tool routing | `brain/CAPABILITIES.md` | — |
+| Sub-agent registry | `brain/AGENTS.md` | — |
 | Past mistakes | `memory/MISTAKES.md` | — |
-| Specific intent verb | `brain/INTENTS.md` | — |
-| Skill picker | `brain/WHEN_TO_USE_SKILLS.md` | `skills/<name>/SKILL.md` |
-| Iron law | `brain/EXECUTION_RULES.md` | — |
+| A specific skill body | `skills/<name>/SKILL.md` (when present) | — |
 
 ---
 
 ## Intent → which TOOL to call
 
-| Operator wants... | Run | Consult first |
-|---|---|---|
-| Parse a new PO | `python scripts/po_parser.py --input <file>` | `skills/po-parser/SKILL.md` |
-| Enter order into A2000 | `python scripts/a2000_run.py order --po <id>` | + operator confirmation |
-| Generate invoice | `python scripts/invoice_gen.py --order <id>` | — |
-| Send EDI 856 (ASN) | `python scripts/edi_send.py 856 --order <id>` | + operator confirmation |
-| Print labels | `python scripts/label_printer.py --order <id> --copies N` | — |
-| Read audit log | `python scripts/audit_log.py tail --json` | — |
+If a script exists for the action, run it. If not, surface that — don't fabricate.
 
 ---
 
-## Hard constraints (Hermes-specific)
+## Iron law (Hermes — non-negotiable)
 
 - **Local-first.** Customer data NEVER leaves the client's machine. No cloud AI. No SaaS pipeline. Ever.
 - **Audit everything.** Append-only log. Every action timestamped, agent-named, outcome-recorded.
