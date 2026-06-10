@@ -1,0 +1,4 @@
+suite: po_extraction
+surface: offline
+source: real
+note: PO1 quantity element parsed as integer

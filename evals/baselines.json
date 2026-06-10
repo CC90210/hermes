@@ -1,0 +1,14 @@
+{
+  "po_extraction": {
+    "score": 1.0,
+    "tolerance": 0.1
+  },
+  "validation": {
+    "score": 1.0,
+    "tolerance": 0.1
+  },
+  "parser_routing": {
+    "score": 1.0,
+    "tolerance": 0.1
+  }
+}

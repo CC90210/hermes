@@ -1,0 +1,4 @@
+suite: parser_routing
+surface: offline
+source: real
+note: deterministic backend selection

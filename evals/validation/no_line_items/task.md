@@ -1,0 +1,2 @@
+# Validation scenario for adapters.po_parser.validate_po (the real pre-order-entry gate).
+no_line_items

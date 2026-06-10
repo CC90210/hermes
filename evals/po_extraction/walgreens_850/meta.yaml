@@ -1,0 +1,4 @@
+suite: po_extraction
+surface: offline
+source: real
+note: PO number extracted from BEG03 segment of a real X12 850 envelope

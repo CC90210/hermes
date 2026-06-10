@@ -1,0 +1,4 @@
+suite: po_extraction
+surface: offline
+source: real
+note: SKUs read from PO1 BP qualifier across two line items

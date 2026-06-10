@@ -1,0 +1,1 @@
+{"scorer": "set_match", "field": "skus", "subset": true, "expected": ["LWG-1001", "LWG-2050"]}
